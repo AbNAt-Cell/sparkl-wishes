@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CreateWishlist from "./pages/CreateWishlist";
+import Profile from "./pages/Profile";
+import WishlistDetail from "./pages/WishlistDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +25,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create-wishlist" element={<CreateWishlist />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/wishlist/:id" element={<WishlistDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

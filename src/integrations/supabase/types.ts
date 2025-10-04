@@ -14,7 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      claims: {
+        Row: {
+          claimer_email: string | null
+          claimer_name: string | null
+          created_at: string
+          id: string
+          is_anonymous: boolean | null
+          item_id: string
+          notes: string | null
+        }
+        Insert: {
+          claimer_email?: string | null
+          claimer_name?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean | null
+          item_id: string
+          notes?: string | null
+        }
+        Update: {
+          claimer_email?: string | null
+          claimer_name?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean | null
+          item_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claims_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "wishlist_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wishlist_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          external_link: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price_max: number | null
+          price_min: number | null
+          priority: number | null
+          updated_at: string
+          wishlist_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          external_link?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price_max?: number | null
+          price_min?: number | null
+          priority?: number | null
+          updated_at?: string
+          wishlist_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          external_link?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price_max?: number | null
+          price_min?: number | null
+          priority?: number | null
+          updated_at?: string
+          wishlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_items_wishlist_id_fkey"
+            columns: ["wishlist_id"]
+            isOneToOne: false
+            referencedRelation: "wishlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wishlists: {
+        Row: {
+          cover_image: string | null
+          created_at: string
+          description: string | null
+          event_date: string | null
+          event_type: string
+          id: string
+          is_public: boolean | null
+          share_code: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          event_type: string
+          id?: string
+          is_public?: boolean | null
+          share_code?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          event_type?: string
+          id?: string
+          is_public?: boolean | null
+          share_code?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

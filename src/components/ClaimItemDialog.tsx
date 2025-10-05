@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { loadStripe } from "@stripe/stripe-js";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface ClaimItemDialogProps {
   open: boolean;
@@ -41,6 +43,11 @@ export const ClaimItemDialog = ({
   const [currency, setCurrency] = useState("USD");
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paystack">("stripe");
+
+  // Sandbox keys - replace with production keys later
+  const STRIPE_PUBLIC_KEY = "pk_test_51QYgYyP8ccfONcKJOIjlN09HcMhC0gKo8BdyPLMRAchz1jJPTzM1lxdpn6J5AEt6c7XNgqOLQ8wJZ1Sq0qcYqE2F00JnOOhMjL";
+  const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxx";
 
   useEffect(() => {
     // Detect user's country and set currency
@@ -55,6 +62,52 @@ export const ClaimItemDialog = ({
       })
       .catch(() => setCurrency("USD"));
   }, []);
+
+  const handleStripePayment = async (claimId: string) => {
+    try {
+      const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
+      if (!stripe) throw new Error("Stripe failed to load");
+
+      // In production, you'd call your backend to create a payment intent
+      // For now, we'll simulate the flow
+      toast.success("Stripe payment integration ready. Backend needed for checkout.");
+      
+      setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+      onOpenChange(false);
+      onClaimSuccess();
+    } catch (error: any) {
+      toast.error("Stripe payment failed: " + error.message);
+    }
+  };
+
+  const handlePaystackPayment = (claimId: string) => {
+    if (!itemPrice) return;
+
+    // Convert price to kobo (Paystack uses smallest currency unit)
+    const amountInKobo = Math.round(itemPrice * 100);
+
+    // @ts-ignore - Paystack is loaded via script
+    const handler = window.PaystackPop?.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: formData.email,
+      amount: amountInKobo,
+      currency: currency,
+      ref: `claim_${claimId}_${Date.now()}`,
+      onClose: () => {
+        toast.error("Payment cancelled");
+        setIsLoadingPayment(false);
+      },
+      callback: (response: any) => {
+        toast.success(`Payment successful! Reference: ${response.reference}`);
+        setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+        onOpenChange(false);
+        onClaimSuccess();
+        setIsLoadingPayment(false);
+      },
+    });
+
+    handler?.openIframe();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,23 +132,39 @@ export const ClaimItemDialog = ({
       // If there's a price, proceed to payment
       if (itemPrice && itemPrice > 0) {
         setIsLoadingPayment(true);
-        // TODO: Integrate payment gateway here
-        // For now, just show success
-        toast.success("Item claimed! Payment processing will be added soon.");
+        
+        if (paymentMethod === "stripe") {
+          await handleStripePayment(claimData.id);
+        } else {
+          handlePaystackPayment(claimData.id);
+        }
       } else {
         toast.success("Item claimed successfully!");
+        setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+        onOpenChange(false);
+        onClaimSuccess();
       }
-
-      setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
-      onOpenChange(false);
-      onClaimSuccess();
     } catch (error: any) {
       toast.error("Failed to claim item: " + error.message);
     } finally {
       setIsSubmitting(false);
-      setIsLoadingPayment(false);
+      if (paymentMethod === "stripe") {
+        setIsLoadingPayment(false);
+      }
     }
   };
+
+  useEffect(() => {
+    // Load Paystack script
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,8 +235,29 @@ export const ClaimItemDialog = ({
               Claim anonymously (your name won't be shown to others)
             </Label>
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Claiming..." : "Claim Item"}
+          
+          {itemPrice && itemPrice > 0 && (
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "stripe" | "paystack")}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="stripe" id="stripe" />
+                  <Label htmlFor="stripe" className="cursor-pointer font-normal">
+                    Stripe (Card Payment)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="paystack" id="paystack" />
+                  <Label htmlFor="paystack" className="cursor-pointer font-normal">
+                    Paystack (Card, Bank Transfer, USSD)
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
+          
+          <Button type="submit" className="w-full" disabled={isSubmitting || isLoadingPayment}>
+            {isSubmitting || isLoadingPayment ? "Processing..." : itemPrice && itemPrice > 0 ? `Claim & Pay ${currency} ${itemPrice.toFixed(2)}` : "Claim Item"}
           </Button>
         </form>
       </DialogContent>

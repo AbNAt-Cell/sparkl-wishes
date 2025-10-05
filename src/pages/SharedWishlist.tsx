@@ -175,6 +175,11 @@ const SharedWishlist = () => {
                           {item.description}
                         </CardDescription>
                       )}
+                      {item.price_max && (
+                        <p className="text-lg font-semibold text-primary mt-2">
+                          Price: ${item.price_max.toFixed(2)}
+                        </p>
+                      )}
                       {isClaimed && claimInfo && !claimInfo.is_anonymous && (
                         <p className="text-sm text-muted-foreground">
                           Claimed by {claimInfo.claimer_name}

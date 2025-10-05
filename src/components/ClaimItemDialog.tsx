@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ interface ClaimItemDialogProps {
   onOpenChange: (open: boolean) => void;
   itemId: string;
   itemName: string;
+  itemPrice: number | null;
   onClaimSuccess: () => void;
 }
 
@@ -27,39 +28,72 @@ export const ClaimItemDialog = ({
   onOpenChange,
   itemId,
   itemName,
+  itemPrice,
   onClaimSuccess,
 }: ClaimItemDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     notes: "",
     isAnonymous: false,
   });
+  const [currency, setCurrency] = useState("USD");
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Detect user's country and set currency
+    fetch("https://ipapi.co/json/")
+      .then((res) => res.json())
+      .then((data) => {
+        const currencyMap: { [key: string]: string } = {
+          US: "USD", GB: "GBP", EU: "EUR", CA: "CAD", AU: "AUD",
+          NG: "NGN", KE: "KES", ZA: "ZAR", IN: "INR", JP: "JPY",
+        };
+        setCurrency(currencyMap[data.country_code] || "USD");
+      })
+      .catch(() => setCurrency("USD"));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("claims").insert({
-        item_id: itemId,
-        claimer_name: formData.name,
-        claimer_email: formData.email,
-        notes: formData.notes || null,
-        is_anonymous: formData.isAnonymous,
-      });
+      // First, create the claim
+      const { data: claimData, error: claimError } = await supabase
+        .from("claims")
+        .insert({
+          item_id: itemId,
+          claimer_name: formData.name,
+          claimer_email: formData.email,
+          notes: formData.notes || null,
+          is_anonymous: formData.isAnonymous,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (claimError) throw claimError;
 
-      toast.success("Item claimed successfully!");
-      setFormData({ name: "", email: "", notes: "", isAnonymous: false });
+      // If there's a price, proceed to payment
+      if (itemPrice && itemPrice > 0) {
+        setIsLoadingPayment(true);
+        // TODO: Integrate payment gateway here
+        // For now, just show success
+        toast.success("Item claimed! Payment processing will be added soon.");
+      } else {
+        toast.success("Item claimed successfully!");
+      }
+
+      setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
       onOpenChange(false);
       onClaimSuccess();
     } catch (error: any) {
       toast.error("Failed to claim item: " + error.message);
     } finally {
       setIsSubmitting(false);
+      setIsLoadingPayment(false);
     }
   };
 
@@ -70,6 +104,11 @@ export const ClaimItemDialog = ({
           <DialogTitle>Claim Item</DialogTitle>
           <DialogDescription>
             Claim "{itemName}" by providing your details
+            {itemPrice && itemPrice > 0 && (
+              <span className="block mt-2 font-semibold text-primary">
+                Amount to pay: {currency} {itemPrice.toFixed(2)}
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,6 +131,17 @@ export const ClaimItemDialog = ({
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
               placeholder="john@example.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Your Phone Number *</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              required
+              placeholder="+1234567890"
             />
           </div>
           <div className="space-y-2">

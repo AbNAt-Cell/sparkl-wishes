@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, ExternalLink, Loader2, Gift } from "lucide-react";
+import { Calendar, Loader2, Gift } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ClaimItemDialog } from "@/components/ClaimItemDialog";
 
@@ -12,7 +12,7 @@ const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
   const navigate = useNavigate();
   const [claimDialogOpen, setClaimDialogOpen] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState<{ id: string; name: string } | null>(null);
+  const [selectedItem, setSelectedItem] = React.useState<{ id: string; name: string; price: number | null } | null>(null);
 
   const { data: wishlist, isLoading: wishlistLoading } = useQuery({
     queryKey: ["shared-wishlist", shareCode],
@@ -46,8 +46,8 @@ const SharedWishlist = () => {
     enabled: !!wishlist?.id,
   });
 
-  const handleClaimClick = (itemId: string, itemName: string) => {
-    setSelectedItem({ id: itemId, name: itemName });
+  const handleClaimClick = (itemId: string, itemName: string, price: number | null) => {
+    setSelectedItem({ id: itemId, name: itemName, price });
     setClaimDialogOpen(true);
   };
 
@@ -188,40 +188,16 @@ const SharedWishlist = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {(item.price_min || item.price_max) && (
-                          <div className="text-sm">
-                            <span className="font-semibold text-primary">
-                              {item.price_min && item.price_max
-                                ? `$${item.price_min} - $${item.price_max}`
-                                : item.price_min
-                                ? `From $${item.price_min}`
-                                : `Up to $${item.price_max}`}
-                            </span>
-                          </div>
+                        {!isClaimed && (
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleClaimClick(item.id, item.name, item.price_max)}
+                          >
+                            <Gift className="w-4 h-4 mr-2" />
+                            Claim
+                          </Button>
                         )}
-                        <div className="flex gap-2">
-                          {item.external_link && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => window.open(item.external_link!, "_blank")}
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              View
-                            </Button>
-                          )}
-                          {!isClaimed && (
-                            <Button
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => handleClaimClick(item.id, item.name)}
-                            >
-                              <Gift className="w-4 h-4 mr-2" />
-                              Claim
-                            </Button>
-                          )}
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -250,6 +226,7 @@ const SharedWishlist = () => {
           onOpenChange={setClaimDialogOpen}
           itemId={selectedItem.id}
           itemName={selectedItem.name}
+          itemPrice={selectedItem.price}
           onClaimSuccess={refetchItems}
         />
       )}

@@ -23,6 +23,9 @@ export type Database = {
           is_anonymous: boolean | null
           item_id: string
           notes: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payment_status: string | null
         }
         Insert: {
           claimer_email?: string | null
@@ -32,6 +35,9 @@ export type Database = {
           is_anonymous?: boolean | null
           item_id: string
           notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
         }
         Update: {
           claimer_email?: string | null
@@ -41,6 +47,9 @@ export type Database = {
           is_anonymous?: boolean | null
           item_id?: string
           notes?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
         }
         Relationships: [
           {

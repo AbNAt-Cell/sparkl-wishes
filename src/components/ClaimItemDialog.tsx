@@ -44,6 +44,8 @@ export const ClaimItemDialog = ({
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paystack">("stripe");
+  const [claimId, setClaimId] = useState<string | null>(null);
+  const [showPaymentButton, setShowPaymentButton] = useState(false);
 
   // Sandbox keys - replace with production keys later
   const STRIPE_PUBLIC_KEY = "pk_test_51QYgYyP8ccfONcKJOIjlN09HcMhC0gKo8BdyPLMRAchz1jJPTzM1lxdpn6J5AEt6c7XNgqOLQ8wJZ1Sq0qcYqE2F00JnOOhMjL";
@@ -69,10 +71,22 @@ export const ClaimItemDialog = ({
       if (!stripe) throw new Error("Stripe failed to load");
 
       // In production, you'd call your backend to create a payment intent
-      // For now, we'll simulate the flow
+      // For now, we'll simulate the flow and update payment status
       toast.success("Stripe payment integration ready. Backend needed for checkout.");
       
+      // Update claim with payment info
+      await supabase
+        .from("claims")
+        .update({
+          payment_status: "completed",
+          payment_method: "stripe",
+          payment_reference: `stripe_${Date.now()}`,
+        })
+        .eq("id", claimId);
+
       setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+      setShowPaymentButton(false);
+      setClaimId(null);
       onOpenChange(false);
       onClaimSuccess();
     } catch (error: any) {
@@ -97,9 +111,21 @@ export const ClaimItemDialog = ({
         toast.error("Payment cancelled");
         setIsLoadingPayment(false);
       },
-      callback: (response: any) => {
+      callback: async (response: any) => {
+        // Update claim with payment info
+        await supabase
+          .from("claims")
+          .update({
+            payment_status: "completed",
+            payment_method: "paystack",
+            payment_reference: response.reference,
+          })
+          .eq("id", claimId);
+
         toast.success(`Payment successful! Reference: ${response.reference}`);
         setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+        setShowPaymentButton(false);
+        setClaimId(null);
         onOpenChange(false);
         onClaimSuccess();
         setIsLoadingPayment(false);
@@ -123,23 +149,20 @@ export const ClaimItemDialog = ({
           claimer_email: formData.email,
           notes: formData.notes || null,
           is_anonymous: formData.isAnonymous,
+          payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
         })
         .select()
         .single();
 
       if (claimError) throw claimError;
 
-      // If there's a price, proceed to payment
+      setClaimId(claimData.id);
+      toast.success("Item claimed successfully!");
+
+      // If there's a price, show payment button
       if (itemPrice && itemPrice > 0) {
-        setIsLoadingPayment(true);
-        
-        if (paymentMethod === "stripe") {
-          await handleStripePayment(claimData.id);
-        } else {
-          handlePaystackPayment(claimData.id);
-        }
+        setShowPaymentButton(true);
       } else {
-        toast.success("Item claimed successfully!");
         setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
         onOpenChange(false);
         onClaimSuccess();
@@ -148,9 +171,19 @@ export const ClaimItemDialog = ({
       toast.error("Failed to claim item: " + error.message);
     } finally {
       setIsSubmitting(false);
-      if (paymentMethod === "stripe") {
-        setIsLoadingPayment(false);
-      }
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!claimId) return;
+    
+    setIsLoadingPayment(true);
+    
+    if (paymentMethod === "stripe") {
+      await handleStripePayment(claimId);
+      setIsLoadingPayment(false);
+    } else {
+      handlePaystackPayment(claimId);
     }
   };
 
@@ -236,7 +269,7 @@ export const ClaimItemDialog = ({
             </Label>
           </div>
           
-          {itemPrice && itemPrice > 0 && (
+          {itemPrice && itemPrice > 0 && !showPaymentButton && (
             <div className="space-y-2">
               <Label>Payment Method</Label>
               <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "stripe" | "paystack")}>
@@ -256,9 +289,15 @@ export const ClaimItemDialog = ({
             </div>
           )}
           
-          <Button type="submit" className="w-full" disabled={isSubmitting || isLoadingPayment}>
-            {isSubmitting || isLoadingPayment ? "Processing..." : itemPrice && itemPrice > 0 ? `Claim & Pay ${currency} ${itemPrice.toFixed(2)}` : "Claim Item"}
-          </Button>
+          {!showPaymentButton ? (
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Processing..." : "Claim Item"}
+            </Button>
+          ) : (
+            <Button type="button" onClick={handlePayment} className="w-full" disabled={isLoadingPayment}>
+              {isLoadingPayment ? "Processing Payment..." : `Pay ${currency} ${itemPrice?.toFixed(2)}`}
+            </Button>
+          )}
         </form>
       </DialogContent>
     </Dialog>

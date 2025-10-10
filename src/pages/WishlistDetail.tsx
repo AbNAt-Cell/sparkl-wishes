@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Calendar, Share2, Plus, ExternalLink, Loader2, Gift, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Share2, Plus, ExternalLink, Loader2, Gift, Edit, Trash2, Upload, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -26,6 +26,8 @@ const WishlistDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<Session | null>(null);
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [itemFormData, setItemFormData] = useState({
     name: "",
     description: "",
@@ -82,6 +84,40 @@ const WishlistDetail = () => {
     enabled: !!id,
   });
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !session?.user) return;
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('wishlist-items')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('wishlist-items')
+        .getPublicUrl(fileName);
+
+      setItemFormData({ ...itemFormData, image_url: publicUrl });
+      setImagePreview(publicUrl);
+      toast.success("Image uploaded successfully!");
+    } catch (error: any) {
+      toast.error("Failed to upload image: " + error.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setItemFormData({ ...itemFormData, image_url: "" });
+    setImagePreview(null);
+  };
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -115,6 +151,7 @@ const WishlistDetail = () => {
         category: "",
         priority: "0",
       });
+      setImagePreview(null);
       refetchItems();
     }
   };
@@ -278,13 +315,63 @@ const WishlistDetail = () => {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="image_url">Image URL</Label>
-                          <Input
-                            id="image_url"
-                            type="url"
-                            value={itemFormData.image_url}
-                            onChange={(e) => setItemFormData({ ...itemFormData, image_url: e.target.value })}
-                          />
+                          <Label>Item Image (Optional)</Label>
+                          <div className="space-y-3">
+                            {imagePreview || itemFormData.image_url ? (
+                              <div className="relative w-full aspect-video rounded-lg overflow-hidden border">
+                                <img
+                                  src={imagePreview || itemFormData.image_url}
+                                  alt="Item preview"
+                                  className="w-full h-full object-cover"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute top-2 right-2"
+                                  onClick={handleRemoveImage}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    disabled={uploadingImage}
+                                    className="flex-1"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={uploadingImage}
+                                    onClick={() => document.getElementById('image-upload')?.click()}
+                                  >
+                                    {uploadingImage ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Upload className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                                <div className="text-xs text-muted-foreground text-center">or</div>
+                                <Input
+                                  id="image_url"
+                                  type="url"
+                                  placeholder="Paste image URL"
+                                  value={itemFormData.image_url}
+                                  onChange={(e) => {
+                                    setItemFormData({ ...itemFormData, image_url: e.target.value });
+                                    if (e.target.value) setImagePreview(e.target.value);
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <Button type="submit" className="w-full shadow-elegant">
                           Add Item

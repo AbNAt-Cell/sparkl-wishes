@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Calendar, Share2, Plus, ExternalLink, Loader2, Gift, Edit, Trash2, Upload, X } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -73,7 +74,7 @@ const WishlistDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wishlist_items")
-        .select("*, claims(id, claimer_name, is_anonymous)")
+        .select("*, claims(id, claimer_name, is_anonymous, payment_status)")
         .eq("wishlist_id", id!)
         .order("priority", { ascending: false })
         .order("created_at", { ascending: false });
@@ -257,14 +258,15 @@ const WishlistDetail = () => {
                         Add Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-h-[90vh]">
                       <DialogHeader>
                         <DialogTitle>Add New Item</DialogTitle>
                         <DialogDescription>
                           Add a new item to your wishlist
                         </DialogDescription>
                       </DialogHeader>
-                      <form onSubmit={handleAddItem} className="space-y-4">
+                      <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">
+                        <form onSubmit={handleAddItem} className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="item_name">Item Name *</Label>
                           <Input
@@ -373,10 +375,11 @@ const WishlistDetail = () => {
                             )}
                           </div>
                         </div>
-                        <Button type="submit" className="w-full shadow-elegant">
-                          Add Item
-                        </Button>
-                      </form>
+                          <Button type="submit" className="w-full shadow-elegant">
+                            Add Item
+                          </Button>
+                        </form>
+                      </ScrollArea>
                     </DialogContent>
                   </Dialog>
                 )}
@@ -407,7 +410,11 @@ const WishlistDetail = () => {
           ) : items && items.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map((item) => {
-                const isClaimed = item.claims && (Array.isArray(item.claims) ? item.claims.length > 0 : !!item.claims);
+                // Check if item has a completed payment claim
+                const completedClaim = item.claims && (Array.isArray(item.claims) 
+                  ? item.claims.find((c: any) => c.payment_status === 'completed' || c.payment_status === 'not_required')
+                  : (item.claims as any).payment_status === 'completed' || (item.claims as any).payment_status === 'not_required');
+                const isClaimed = !!completedClaim;
                 return (
                   <Card key={item.id} className="shadow-card hover:shadow-elegant transition-all duration-300">
                     {item.image_url && (

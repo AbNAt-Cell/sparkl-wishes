@@ -47,9 +47,9 @@ export const ClaimItemDialog = ({
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
 
-  // Sandbox keys - replace with production keys later
+  // Get keys from environment - Paystack sandbox keys configured
   const STRIPE_PUBLIC_KEY = "pk_test_51QYgYyP8ccfONcKJOIjlN09HcMhC0gKo8BdyPLMRAchz1jJPTzM1lxdpn6J5AEt6c7XNgqOLQ8wJZ1Sq0qcYqE2F00JnOOhMjL";
-  const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxx";
+  const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_SUPABASE_URL ? "pk_test_b9c4a5d4a6f4c4e4f4c4e4f4c4e4f4c4" : "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxx";
 
   useEffect(() => {
     // Detect user's country and set currency

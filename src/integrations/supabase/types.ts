@@ -145,6 +145,7 @@ export type Database = {
         Row: {
           cover_image: string | null
           created_at: string
+          currency: string
           description: string | null
           event_date: string | null
           event_type: string
@@ -158,6 +159,7 @@ export type Database = {
         Insert: {
           cover_image?: string | null
           created_at?: string
+          currency?: string
           description?: string | null
           event_date?: string | null
           event_type: string
@@ -171,6 +173,7 @@ export type Database = {
         Update: {
           cover_image?: string | null
           created_at?: string
+          currency?: string
           description?: string | null
           event_date?: string | null
           event_type?: string

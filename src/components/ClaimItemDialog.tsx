@@ -123,31 +123,29 @@ export const ClaimItemDialog = ({
           toast.error("Payment cancelled");
           setIsLoadingPayment(false);
         },
-        callback: async (response: any) => {
-          try {
-            // Update claim with payment info
-            const { error } = await supabase
-              .from("claims")
-              .update({
-                payment_status: "completed",
-                payment_method: "paystack",
-                payment_reference: response.reference,
-              })
-              .eq("id", claimId);
-
-            if (error) throw error;
-
-            toast.success(`Payment successful! Reference: ${response.reference}`);
-            setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
-            setShowPaymentButton(false);
-            setClaimId(null);
-            onOpenChange(false);
-            onClaimSuccess();
-          } catch (error: any) {
-            toast.error("Failed to update payment status: " + error.message);
-          } finally {
-            setIsLoadingPayment(false);
-          }
+        callback: (response: any) => {
+          // Update claim with payment info
+          supabase
+            .from("claims")
+            .update({
+              payment_status: "completed",
+              payment_method: "paystack",
+              payment_reference: response.reference,
+            })
+            .eq("id", claimId)
+            .then(({ error }) => {
+              setIsLoadingPayment(false);
+              if (error) {
+                toast.error("Failed to update payment status: " + error.message);
+              } else {
+                toast.success(`Payment successful! Reference: ${response.reference}`);
+                setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+                setShowPaymentButton(false);
+                setClaimId(null);
+                onOpenChange(false);
+                onClaimSuccess();
+              }
+            });
         },
       });
 

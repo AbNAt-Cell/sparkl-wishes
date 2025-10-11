@@ -47,9 +47,9 @@ export const ClaimItemDialog = ({
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
 
-  // Get keys from environment - Paystack sandbox keys configured
-  const STRIPE_PUBLIC_KEY = "pk_test_51QYgYyP8ccfONcKJOIjlN09HcMhC0gKo8BdyPLMRAchz1jJPTzM1lxdpn6J5AEt6c7XNgqOLQ8wJZ1Sq0qcYqE2F00JnOOhMjL";
-  const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_SUPABASE_URL ? "pk_test_b9c4a5d4a6f4c4e4f4c4e4f4c4e4f4c4" : "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxx";
+  // Get keys from environment - using test keys for sandbox
+  const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || "pk_test_51QYgYyP8ccfONcKJOIjlN09HcMhC0gKo8BdyPLMRAchz1jJPTzM1lxdpn6J5AEt6c7XNgqOLQ8wJZ1Sq0qcYqE2F00JnOOhMjL";
+  const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_test_b9c4a5d4a6f4c4e4f4c4e4f4c4e4f4c4";
 
   useEffect(() => {
     // Detect user's country and set currency
@@ -95,44 +95,67 @@ export const ClaimItemDialog = ({
   };
 
   const handlePaystackPayment = (claimId: string) => {
-    if (!itemPrice) return;
+    if (!itemPrice) {
+      toast.error("No payment amount specified");
+      setIsLoadingPayment(false);
+      return;
+    }
+
+    // @ts-ignore - Paystack is loaded via script
+    if (!window.PaystackPop) {
+      toast.error("Payment system not loaded. Please refresh and try again.");
+      setIsLoadingPayment(false);
+      return;
+    }
 
     // Convert price to kobo (Paystack uses smallest currency unit)
     const amountInKobo = Math.round(itemPrice * 100);
 
-    // @ts-ignore - Paystack is loaded via script
-    const handler = window.PaystackPop?.setup({
-      key: PAYSTACK_PUBLIC_KEY,
-      email: formData.email,
-      amount: amountInKobo,
-      currency: currency,
-      ref: `claim_${claimId}_${Date.now()}`,
-      onClose: () => {
-        toast.error("Payment cancelled");
-        setIsLoadingPayment(false);
-      },
-      callback: async (response: any) => {
-        // Update claim with payment info
-        await supabase
-          .from("claims")
-          .update({
-            payment_status: "completed",
-            payment_method: "paystack",
-            payment_reference: response.reference,
-          })
-          .eq("id", claimId);
+    try {
+      // @ts-ignore - Paystack is loaded via script
+      const handler = window.PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: formData.email,
+        amount: amountInKobo,
+        currency: currency,
+        ref: `claim_${claimId}_${Date.now()}`,
+        onClose: () => {
+          toast.error("Payment cancelled");
+          setIsLoadingPayment(false);
+        },
+        callback: async (response: any) => {
+          try {
+            // Update claim with payment info
+            const { error } = await supabase
+              .from("claims")
+              .update({
+                payment_status: "completed",
+                payment_method: "paystack",
+                payment_reference: response.reference,
+              })
+              .eq("id", claimId);
 
-        toast.success(`Payment successful! Reference: ${response.reference}`);
-        setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
-        setShowPaymentButton(false);
-        setClaimId(null);
-        onOpenChange(false);
-        onClaimSuccess();
-        setIsLoadingPayment(false);
-      },
-    });
+            if (error) throw error;
 
-    handler?.openIframe();
+            toast.success(`Payment successful! Reference: ${response.reference}`);
+            setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+            setShowPaymentButton(false);
+            setClaimId(null);
+            onOpenChange(false);
+            onClaimSuccess();
+          } catch (error: any) {
+            toast.error("Failed to update payment status: " + error.message);
+          } finally {
+            setIsLoadingPayment(false);
+          }
+        },
+      });
+
+      handler.openIframe();
+    } catch (error: any) {
+      toast.error("Failed to initialize payment: " + error.message);
+      setIsLoadingPayment(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,10 +215,19 @@ export const ClaimItemDialog = ({
     const script = document.createElement("script");
     script.src = "https://js.paystack.co/v1/inline.js";
     script.async = true;
+    script.onload = () => {
+      console.log("Paystack script loaded successfully");
+    };
+    script.onerror = () => {
+      console.error("Failed to load Paystack script");
+      toast.error("Failed to load payment system");
+    };
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 

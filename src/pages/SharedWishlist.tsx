@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Loader2, Gift } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ClaimItemDialog } from "@/components/ClaimItemDialog";
+import { getCurrencySymbol } from "@/lib/utils";
 
 const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
@@ -177,7 +178,7 @@ const SharedWishlist = () => {
                       )}
                       {item.price_max && (
                         <p className="text-lg font-semibold text-primary mt-2">
-                          Price: ${item.price_max.toFixed(2)}
+                          Price: {getCurrencySymbol(wishlist.currency)}{item.price_max.toFixed(2)}
                         </p>
                       )}
                       {isClaimed && claimInfo && !claimInfo.is_anonymous && (

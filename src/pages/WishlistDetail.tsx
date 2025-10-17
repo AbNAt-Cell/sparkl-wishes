@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Calendar, Share2, Plus, ExternalLink, Loader2, Gift, Edit, Trash2, Upload, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
+import { getCurrencySymbol } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -447,10 +448,10 @@ const WishlistDetail = () => {
                           <div className="text-sm">
                             <span className="font-semibold text-primary">
                               {item.price_min && item.price_max
-                                ? `$${item.price_min} - $${item.price_max}`
+                                ? `${getCurrencySymbol(wishlist.currency)}${item.price_min} - ${getCurrencySymbol(wishlist.currency)}${item.price_max}`
                                 : item.price_min
-                                ? `From $${item.price_min}`
-                                : `Up to $${item.price_max}`}
+                                ? `From ${getCurrencySymbol(wishlist.currency)}${item.price_min}`
+                                : `Up to ${getCurrencySymbol(wishlist.currency)}${item.price_max}`}
                             </span>
                           </div>
                         )}

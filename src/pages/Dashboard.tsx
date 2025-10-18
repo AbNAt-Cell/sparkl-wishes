@@ -5,12 +5,15 @@ import { Session } from "@supabase/supabase-js";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Calendar, Gift, Share2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Plus, Calendar, Gift, Share2, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -45,6 +48,33 @@ const Dashboard = () => {
     },
     enabled: !!session,
   });
+
+  const handleDeleteWishlist = async (wishlistId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm("Are you sure you want to delete this wishlist? This action cannot be undone.")) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("wishlists")
+      .delete()
+      .eq("id", wishlistId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete wishlist",
+        variant: "destructive",
+      });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["wishlists", session?.user?.id] });
+      toast({
+        title: "Success",
+        description: "Wishlist deleted successfully",
+      });
+    }
+  };
 
   const eventTypeColors = {
     wedding: "bg-primary/10 text-primary border-primary/20",
@@ -107,16 +137,28 @@ const Dashboard = () => {
                 )}
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
-                    <CardTitle className="group-hover:text-primary transition-colors">
-                      {wishlist.title}
-                    </CardTitle>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                        eventTypeColors[wishlist.event_type as keyof typeof eventTypeColors]
-                      }`}
-                    >
-                      {wishlist.event_type.replace("_", " ")}
-                    </span>
+                    <div className="flex-1">
+                      <CardTitle className="group-hover:text-primary transition-colors">
+                        {wishlist.title}
+                      </CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                          eventTypeColors[wishlist.event_type as keyof typeof eventTypeColors]
+                        }`}
+                      >
+                        {wishlist.event_type.replace("_", " ")}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => handleDeleteWishlist(wishlist.id, e)}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   <CardDescription className="line-clamp-2">
                     {wishlist.description || "No description"}

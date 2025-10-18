@@ -168,9 +168,13 @@ export const ClaimItemDialog = ({
           item_id: itemId,
           claimer_name: formData.name,
           claimer_email: formData.email,
+          claimer_phone: formData.phone,
           notes: formData.notes || null,
           is_anonymous: formData.isAnonymous,
           payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
+          expires_at: itemPrice && itemPrice > 0 
+            ? new Date(Date.now() + 10 * 60 * 1000).toISOString() 
+            : null,
         })
         .select()
         .single();
@@ -230,8 +234,8 @@ export const ClaimItemDialog = ({
   }, []);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
+      <DialogContent className="pointer-events-auto">
         <DialogHeader>
           <DialogTitle>Claim Item</DialogTitle>
           <DialogDescription>

@@ -18,7 +18,9 @@ export type Database = {
         Row: {
           claimer_email: string | null
           claimer_name: string | null
+          claimer_phone: string | null
           created_at: string
+          expires_at: string | null
           id: string
           is_anonymous: boolean | null
           item_id: string
@@ -30,7 +32,9 @@ export type Database = {
         Insert: {
           claimer_email?: string | null
           claimer_name?: string | null
+          claimer_phone?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_anonymous?: boolean | null
           item_id: string
@@ -42,7 +46,9 @@ export type Database = {
         Update: {
           claimer_email?: string | null
           claimer_name?: string | null
+          claimer_phone?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_anonymous?: boolean | null
           item_id?: string
@@ -87,6 +93,84 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          claim_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          reference: string | null
+          status: string
+          type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          claim_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference?: string | null
+          status?: string
+          type: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          claim_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference?: string | null
+          status?: string
+          type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "user_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wishlist_items: {
         Row: {
@@ -199,7 +283,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      expire_unpaid_claims: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

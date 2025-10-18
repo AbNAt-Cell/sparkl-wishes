@@ -430,10 +430,15 @@ const WishlistDetail = () => {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <CardTitle className="text-lg">{item.name}</CardTitle>
-                        {isClaimed && (
-                          <Badge variant="secondary" className="ml-2">
-                            Claimed
+                         {isClaimed && (
+                          <Badge variant="default" className="ml-2 bg-green-600">
+                            Paid
                           </Badge>
+                        )}
+                        {completedClaim && !completedClaim.is_anonymous && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Claimed by: {completedClaim.claimer_name}
+                          </p>
                         )}
                       </div>
                       {item.description && (

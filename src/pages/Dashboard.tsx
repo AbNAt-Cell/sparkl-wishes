@@ -33,7 +33,7 @@ const Dashboard = () => {
   }, [navigate]);
 
   const { data: wishlists, isLoading } = useQuery({
-    queryKey: ["wishlists"],
+    queryKey: ["wishlists", session?.user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wishlists")

@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Calendar, Gift, Loader2, Trash2, Share2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Wallet } from "@/components/Wallet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -98,14 +97,8 @@ const Dashboard = () => {
       <Navbar user={session.user} />
       
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="wishlists" className="w-full">
-          <TabsList className="grid w-full max-w-[400px] grid-cols-2 mb-8">
-            <TabsTrigger value="wishlists">My Wishlists</TabsTrigger>
-            <TabsTrigger value="wallet">Wallet</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="wishlists" className="space-y-8">
-            <div className="flex items-center justify-between">
+        <div className="space-y-8">
+          <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-bold mb-2">My Wishlists</h1>
                 <p className="text-muted-foreground">Create and manage your celebration wishlists</p>
@@ -215,12 +208,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-          
-          <TabsContent value="wallet">
-            <Wallet userId={session.user.id} />
-          </TabsContent>
-        </Tabs>
+        </div>
       </main>
     </div>
   );

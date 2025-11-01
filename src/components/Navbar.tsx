@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Gift, LogOut, User, Wallet } from "lucide-react";
+import { Gift, LogOut, User, Wallet, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,6 +41,16 @@ const Navbar = ({ user }: NavbarProps) => {
         </button>
 
         <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate("/how-it-works")}
+            className="hidden md:flex items-center gap-2"
+          >
+            <HelpCircle className="w-4 h-4" />
+            How It Works
+          </Button>
+          
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

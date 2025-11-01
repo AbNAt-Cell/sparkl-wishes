@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Calendar, Gift, Loader2, Trash2, Share2 } from "lucide-react";
+import { Plus, Calendar, Gift, Loader2, Trash2, Share2, Wallet, TrendingUp } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getCurrencySymbol } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,8 @@ import {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [wishlistToDelete, setWishlistToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -53,6 +56,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from("wishlists")
         .select("*, profiles(full_name)")
+        .eq("user_id", session!.user.id)  // CRITICAL: Filter by current user
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -61,24 +65,45 @@ const Dashboard = () => {
     enabled: !!session,
   });
 
-  const handleDeleteWishlist = async (wishlistId: string, e: React.MouseEvent) => {
+  // Fetch wallet balance
+  const { data: wallets } = useQuery({
+    queryKey: ["user-wallets", session?.user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_wallets")
+        .select("*")
+        .eq("user_id", session!.user!.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
+
+  const handleDeleteClick = (wishlistId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!confirm("Are you sure you want to delete this wishlist? This action cannot be undone.")) {
-      return;
-    }
+    setWishlistToDelete(wishlistId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!wishlistToDelete) return;
 
     const { error } = await supabase
       .from("wishlists")
       .delete()
-      .eq("id", wishlistId);
+      .eq("id", wishlistToDelete)
+      .eq("user_id", session!.user.id); // Ensure user owns this wishlist
 
     if (error) {
-      toast.error("Failed to delete wishlist");
+      toast.error("Failed to delete wishlist: " + error.message);
     } else {
       queryClient.invalidateQueries({ queryKey: ["wishlists", session?.user?.id] });
       toast.success("Wishlist deleted successfully");
     }
+
+    setDeleteDialogOpen(false);
+    setWishlistToDelete(null);
   };
 
   const eventTypeColors = {
@@ -98,19 +123,45 @@ const Dashboard = () => {
       
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div>
                 <h1 className="text-4xl font-bold mb-2">My Wishlists</h1>
                 <p className="text-muted-foreground">Create and manage your celebration wishlists</p>
               </div>
-              <Button 
-                onClick={() => navigate("/create-wishlist")}
-                size="lg"
-                className="shadow-elegant"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Create Wishlist
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                {wallets && wallets.length > 0 && wallets[0].balance > 0 && (
+                  <Card 
+                    className="cursor-pointer hover:shadow-elegant transition-all shadow-card lg:w-64"
+                    onClick={() => navigate("/wallet")}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Wallet Balance</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {getCurrencySymbol(wallets[0].currency)}{wallets[0].balance.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-gradient-hero flex items-center justify-center shadow-glow">
+                          <Wallet className="w-6 h-6 text-primary-foreground" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>Click to withdraw</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                <Button 
+                  onClick={() => navigate("/create-wishlist")}
+                  size="lg"
+                  className="shadow-elegant"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Wishlist
+                </Button>
+              </div>
             </div>
 
             {isLoading ? (
@@ -159,7 +210,7 @@ const Dashboard = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={(e) => handleDeleteWishlist(wishlist.id, e)}
+                            onClick={(e) => handleDeleteClick(wishlist.id, e)}
                             className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -210,6 +261,28 @@ const Dashboard = () => {
             )}
         </div>
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Wishlist?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this wishlist? This action cannot be undone. 
+              All items and claims associated with this wishlist will also be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

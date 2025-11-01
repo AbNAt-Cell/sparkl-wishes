@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Calendar, Share2, Plus, ExternalLink, Loader2, Gift, Edit, Trash2, Upload, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
-import { getCurrencySymbol } from "@/lib/utils";
+import { getCurrencySymbol, isItemClaimed, getCompletedClaim } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -87,6 +87,7 @@ const WishlistDetail = () => {
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault(); // Prevent form submission
     const file = e.target.files?.[0];
     if (!file || !session?.user) return;
 
@@ -108,10 +109,13 @@ const WishlistDetail = () => {
       setItemFormData({ ...itemFormData, image_url: publicUrl });
       setImagePreview(publicUrl);
       toast.success("Image uploaded successfully!");
-    } catch (error: any) {
-      toast.error("Failed to upload image: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
+      toast.error(errorMessage);
     } finally {
       setUploadingImage(false);
+      // Clear the file input so the same file can be selected again
+      e.target.value = '';
     }
   };
 
@@ -341,6 +345,7 @@ const WishlistDetail = () => {
                               <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-2">
                                   <Input
+                                    id="image-upload"
                                     type="file"
                                     accept="image/*"
                                     onChange={handleImageUpload}
@@ -352,7 +357,10 @@ const WishlistDetail = () => {
                                     variant="outline"
                                     size="icon"
                                     disabled={uploadingImage}
-                                    onClick={() => document.getElementById('image-upload')?.click()}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      document.getElementById('image-upload')?.click();
+                                    }}
                                   >
                                     {uploadingImage ? (
                                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -411,11 +419,8 @@ const WishlistDetail = () => {
           ) : items && items.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map((item) => {
-                // Check if item has a completed payment claim
-                const completedClaim = item.claims && (Array.isArray(item.claims) 
-                  ? item.claims.find((c: any) => c.payment_status === 'completed' || c.payment_status === 'not_required')
-                  : (item.claims as any).payment_status === 'completed' || (item.claims as any).payment_status === 'not_required');
-                const isClaimed = !!completedClaim;
+                const isClaimed = isItemClaimed(item.claims);
+                const completedClaim = getCompletedClaim(item.claims);
                 return (
                   <Card key={item.id} className="shadow-card hover:shadow-elegant transition-all duration-300">
                     {item.image_url && (
@@ -428,16 +433,23 @@ const WishlistDetail = () => {
                       </div>
                     )}
                     <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">{item.name}</CardTitle>
-                         {isClaimed && (
-                          <Badge variant="default" className="ml-2 bg-green-600">
-                            Paid
-                          </Badge>
-                        )}
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-lg">{item.name}</CardTitle>
+                          {isClaimed && (
+                            <Badge variant="default" className="ml-2 bg-green-600">
+                              Claimed
+                            </Badge>
+                          )}
+                        </div>
                         {completedClaim && !completedClaim.is_anonymous && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground">
                             Claimed by: {completedClaim.claimer_name}
+                          </p>
+                        )}
+                        {completedClaim && completedClaim.is_anonymous && (
+                          <p className="text-xs text-muted-foreground">
+                            Claimed anonymously
                           </p>
                         )}
                       </div>

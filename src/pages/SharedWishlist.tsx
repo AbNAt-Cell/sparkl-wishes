@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Loader2, Gift } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ClaimItemDialog } from "@/components/ClaimItemDialog";
-import { getCurrencySymbol } from "@/lib/utils";
+import { getCurrencySymbol, isItemClaimed, getCompletedClaim } from "@/lib/utils";
 
 const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
@@ -36,7 +36,7 @@ const SharedWishlist = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wishlist_items")
-        .select("*, claims(id, claimer_name, is_anonymous)")
+        .select("*, claims(id, claimer_name, is_anonymous, payment_status)")
         .eq("wishlist_id", wishlist!.id)
         .order("priority", { ascending: false })
         .order("created_at", { ascending: false });
@@ -147,9 +147,8 @@ const SharedWishlist = () => {
           ) : items && items.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map((item) => {
-                const claims = Array.isArray(item.claims) ? item.claims : item.claims ? [item.claims] : [];
-                const isClaimed = claims.length > 0;
-                const claimInfo = isClaimed ? claims[0] : null;
+                const isClaimed = isItemClaimed(item.claims);
+                const claimInfo = getCompletedClaim(item.claims);
                 
                 return (
                   <Card key={item.id} className="shadow-card hover:shadow-elegant transition-all duration-300">

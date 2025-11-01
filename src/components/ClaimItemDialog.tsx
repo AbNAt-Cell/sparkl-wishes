@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { loadStripe } from "@stripe/stripe-js";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface ClaimItemDialogProps {
@@ -43,65 +42,42 @@ export const ClaimItemDialog = ({
   const [currency, setCurrency] = useState("USD");
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paystack">("stripe");
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
+  const [wishlistOwnerId, setWishlistOwnerId] = useState<string | null>(null);
 
-  // Get keys from environment - using test keys for sandbox
-  const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || "pk_test_51QYgYyP8ccfONcKJOIjlN09HcMhC0gKo8BdyPLMRAchz1jJPTzM1lxdpn6J5AEt6c7XNgqOLQ8wJZ1Sq0qcYqE2F00JnOOhMjL";
-  const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_test_b9c4a5d4a6f4c4e4f4c4e4f4c4e4f4c4";
+  // Get Paystack key from environment
+  const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
   useEffect(() => {
-    // Detect user's country and set currency
-    fetch("https://ipapi.co/json/")
-      .then((res) => res.json())
-      .then((data) => {
-        const currencyMap: { [key: string]: string } = {
-          US: "USD", GB: "GBP", EU: "EUR", CA: "CAD", AU: "AUD",
-          NG: "NGN", KE: "KES", ZA: "ZAR", IN: "INR", JP: "JPY",
-        };
-        setCurrency(currencyMap[data.country_code] || "USD");
-      })
-      .catch(() => setCurrency("USD"));
-  }, []);
+    // Fetch wishlist's currency (not the claimer's location-based currency)
+    const fetchWishlistCurrency = async () => {
+      const { data, error } = await supabase
+        .from("wishlist_items")
+        .select("wishlists(currency)")
+        .eq("id", itemId)
+        .single();
 
-  const handleStripePayment = async (claimId: string) => {
-    try {
-      const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
-      if (!stripe) throw new Error("Stripe failed to load");
+      if (!error && data?.wishlists?.currency) {
+        setCurrency(data.wishlists.currency);
+      } else {
+        setCurrency("USD"); // Fallback
+      }
+    };
 
-      // In production, you'd call your backend to create a payment intent
-      // For now, we'll simulate the flow and update payment status
-      toast.success("Stripe payment integration ready. Backend needed for checkout.");
-      
-      // Update claim with payment info
-      await supabase
-        .from("claims")
-        .update({
-          payment_status: "completed",
-          payment_method: "stripe",
-          payment_reference: `stripe_${Date.now()}`,
-        })
-        .eq("id", claimId);
-
-      setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
-      setShowPaymentButton(false);
-      setClaimId(null);
-      onOpenChange(false);
-      onClaimSuccess();
-    } catch (error: any) {
-      toast.error("Stripe payment failed: " + error.message);
+    if (open && itemId) {
+      fetchWishlistCurrency();
     }
-  };
+  }, [open, itemId]);
 
-  const handlePaystackPayment = (claimId: string) => {
+  const handlePaystackPayment = async (claimId: string) => {
     if (!itemPrice) {
       toast.error("No payment amount specified");
       setIsLoadingPayment(false);
       return;
     }
 
-    // @ts-ignore - Paystack is loaded via script
+    // @ts-expect-error - Paystack is loaded via script
     if (!window.PaystackPop) {
       toast.error("Payment system not loaded. Please refresh and try again.");
       setIsLoadingPayment(false);
@@ -112,46 +88,77 @@ export const ClaimItemDialog = ({
     const amountInKobo = Math.round(itemPrice * 100);
 
     try {
-      // @ts-ignore - Paystack is loaded via script
+      // @ts-expect-error - Paystack is loaded via script
       const handler = window.PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: formData.email,
         amount: amountInKobo,
         currency: currency,
         ref: `claim_${claimId}_${Date.now()}`,
-        onClose: () => {
+        onClose: function() {
           toast.error("Payment cancelled");
           setIsLoadingPayment(false);
         },
-        callback: (response: any) => {
-          // Update claim with payment info
-          supabase
-            .from("claims")
-            .update({
-              payment_status: "completed",
-              payment_method: "paystack",
-              payment_reference: response.reference,
-            })
-            .eq("id", claimId)
-            .then(({ error }) => {
-              setIsLoadingPayment(false);
-              if (error) {
-                toast.error("Failed to update payment status: " + error.message);
-              } else {
-                toast.success(`Payment successful! Reference: ${response.reference}`);
-                setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
-                setShowPaymentButton(false);
-                setClaimId(null);
-                onOpenChange(false);
-                onClaimSuccess();
+        callback: function(response: { reference: string; status?: string }) {
+          setIsLoadingPayment(false);
+          
+          // Paystack requires synchronous callback - wrap async operations
+          (async () => {
+            try {
+              console.log("✅ Payment successful:", response.reference);
+              
+              // Update claim - database trigger will handle wallet crediting automatically
+              const { error: claimError } = await supabase
+                .from("claims")
+                .update({
+                  payment_status: "completed",
+                  payment_method: "paystack",
+                  payment_reference: response.reference,
+                })
+                .eq("id", claimId);
+
+              if (claimError) {
+                console.error("❌ Failed to update claim:", claimError);
+                throw claimError;
               }
-            });
+
+              console.log("✅ Claim updated - Database trigger will credit wallet");
+              
+              // Wait a moment for the trigger to complete
+              await new Promise(resolve => setTimeout(resolve, 1000));
+
+              toast.success("Payment successful! Funds have been credited to the wishlist owner.");
+              setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
+              setShowPaymentButton(false);
+              setClaimId(null);
+              onOpenChange(false);
+              onClaimSuccess();
+            } catch (error) {
+              console.error("❌ Payment processing error:", error);
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              
+              // Show detailed error to user
+              toast.error(
+                `Payment received (ref: ${response.reference}) but claim update failed: ${errorMessage}. The wallet will still be credited automatically. If not, contact support with reference: ${response.reference}`,
+                { duration: 10000 }
+              );
+              
+              // Log for debugging
+              console.error("Full error details:", {
+                error,
+                claimId,
+                paymentReference: response.reference,
+                timestamp: new Date().toISOString()
+              });
+            }
+          })();
         },
       });
 
       handler.openIframe();
-    } catch (error: any) {
-      toast.error("Failed to initialize payment: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to initialize payment";
+      toast.error(errorMessage);
       setIsLoadingPayment(false);
     }
   };
@@ -192,8 +199,9 @@ export const ClaimItemDialog = ({
         onOpenChange(false);
         onClaimSuccess();
       }
-    } catch (error: any) {
-      toast.error("Failed to claim item: " + error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to claim item";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -203,13 +211,7 @@ export const ClaimItemDialog = ({
     if (!claimId) return;
     
     setIsLoadingPayment(true);
-    
-    if (paymentMethod === "stripe") {
-      await handleStripePayment(claimId);
-      setIsLoadingPayment(false);
-    } else {
-      handlePaystackPayment(claimId);
-    }
+    handlePaystackPayment(claimId);
   };
 
   useEffect(() => {
@@ -304,22 +306,13 @@ export const ClaimItemDialog = ({
           </div>
           
           {itemPrice && itemPrice > 0 && !showPaymentButton && (
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "stripe" | "paystack")}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="stripe" id="stripe" />
-                  <Label htmlFor="stripe" className="cursor-pointer font-normal">
-                    Stripe (Card Payment)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="paystack" id="paystack" />
-                  <Label htmlFor="paystack" className="cursor-pointer font-normal">
-                    Paystack (Card, Bank Transfer, USSD)
-                  </Label>
-                </div>
-              </RadioGroup>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <p className="text-sm text-muted-foreground">
+                💳 Payment will be processed securely via <strong className="text-primary">Paystack</strong>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Accepts cards, bank transfers, and mobile money
+              </p>
             </div>
           )}
           

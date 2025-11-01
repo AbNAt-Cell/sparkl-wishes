@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sparkles,
   UserPlus,
   ListPlus,
   Share2,
@@ -24,6 +27,21 @@ import {
 
 const HowItWorks = () => {
   const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const registeredUserSteps = [
     {
@@ -214,33 +232,7 @@ const HowItWorks = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Sparkl Wishes
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
-                Sign In
-              </Button>
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                onClick={() => navigate("/auth")}
-              >
-                Get Started Free
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar user={session?.user} />
 
       <main className="container mx-auto px-4 py-12 max-w-7xl">
         {/* Hero Section */}
@@ -471,24 +463,7 @@ const HowItWorks = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-white/80 backdrop-blur-md mt-20">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-sm text-muted-foreground">
-            <p>© 2025 Sparkl Wishes. Made with ❤️ for celebrations.</p>
-            <div className="flex justify-center gap-4 mt-4">
-              <button className="hover:text-purple-600" onClick={() => navigate("/")}>
-                Home
-              </button>
-              <button className="hover:text-purple-600" onClick={() => navigate("/how-it-works")}>
-                How It Works
-              </button>
-              <button className="hover:text-purple-600">Privacy</button>
-              <button className="hover:text-purple-600">Terms</button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

@@ -76,7 +76,7 @@ const Navbar = ({ user }: NavbarProps) => {
             </DropdownMenu>
           ) : (
             <Button onClick={() => navigate("/auth")} className="shadow-elegant">
-              Get Started
+              Sign Up
             </Button>
           )}
         </div>

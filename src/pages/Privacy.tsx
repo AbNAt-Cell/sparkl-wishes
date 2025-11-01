@@ -1,32 +1,34 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Shield, Lock, Eye, Database, UserCheck, Mail } from "lucide-react";
+import { Shield, Lock, Eye, Database, UserCheck, Mail } from "lucide-react";
 
 const Privacy = () => {
   const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-              onClick={() => navigate("/auth")}
-            >
-              Get Started
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Navbar user={session?.user} />
 
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Hero Section */}
@@ -320,28 +322,7 @@ const Privacy = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-white/80 backdrop-blur-md mt-20">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-sm text-muted-foreground">
-            <p>© 2025 Sparkl Wishes. All rights reserved.</p>
-            <div className="flex justify-center gap-4 mt-4">
-              <button className="hover:text-purple-600" onClick={() => navigate("/")}>
-                Home
-              </button>
-              <button className="hover:text-purple-600" onClick={() => navigate("/how-it-works")}>
-                How It Works
-              </button>
-              <button className="hover:text-purple-600" onClick={() => navigate("/privacy")}>
-                Privacy
-              </button>
-              <button className="hover:text-purple-600" onClick={() => navigate("/terms")}>
-                Terms
-              </button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

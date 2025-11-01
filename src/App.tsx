@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import CreateWishlist from "./pages/CreateWishlist";
 import Profile from "./pages/Profile";
 import Wallet from "./pages/Wallet";
+import HowItWorks from "./pages/HowItWorks";
 import WishlistDetail from "./pages/WishlistDetail";
 import SharedWishlist from "./pages/SharedWishlist";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/create-wishlist" element={<CreateWishlist />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<Wallet />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/wishlist/:id" element={<WishlistDetail />} />
           <Route path="/share/:shareCode" element={<SharedWishlist />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

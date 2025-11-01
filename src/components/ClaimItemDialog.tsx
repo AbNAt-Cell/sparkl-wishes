@@ -215,8 +215,8 @@ export const ClaimItemDialog = ({
           expires_at: itemPrice && itemPrice > 0 
             ? new Date(Date.now() + 10 * 60 * 1000).toISOString() 
             : null,
-          is_group_gift: claimType === "partial",
-          contribution_amount: claimType === "partial" ? parseFloat(contributionAmount) : null,
+          // is_group_gift: claimType === "partial", // Requires migration
+          // contribution_amount: claimType === "partial" ? parseFloat(contributionAmount) : null, // Requires migration
         })
         .select()
         .single();
@@ -244,6 +244,9 @@ export const ClaimItemDialog = ({
 
   const handlePayment = async () => {
     if (!claimId) return;
+    
+    // Close the dialog BEFORE opening Paystack popup to avoid z-index issues
+    onOpenChange(false);
     
     setIsLoadingPayment(true);
     handlePaystackPayment(claimId);
@@ -299,8 +302,8 @@ export const ClaimItemDialog = ({
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          {/* Claim Type Selection (only show if item has a price) */}
-          {itemPrice && itemPrice > 0 && (
+          {/* Claim Type Selection (Group Gifting) - Requires migration to be run first */}
+          {/* {itemPrice && itemPrice > 0 && (
             <div className="space-y-4 p-4 rounded-lg border bg-gradient-to-br from-purple-50/30 to-pink-50/30">
               <div className="flex items-center gap-2 pb-2 border-b">
                 <Info className="w-4 h-4 text-muted-foreground" />
@@ -364,7 +367,7 @@ export const ClaimItemDialog = ({
                 </div>
               </RadioGroup>
             </div>
-          )}
+          )} */}
 
           {/* Personal Information Section */}
           <div className="space-y-4">

@@ -92,14 +92,18 @@ const WishlistDetail = () => {
   const { data: items, isLoading: itemsLoading, refetch: refetchItems } = useQuery({
     queryKey: ["wishlist-items", id],
     queryFn: async () => {
+      console.log("Fetching items for wishlist:", id);
       const { data, error } = await supabase
         .from("wishlist_items")
-        .select("*, claims(id, claimer_name, is_anonymous, payment_status, thank_you_message, thank_you_sent_at)")
+        .select("*, claims(id, claimer_name, is_anonymous, payment_status)")
         .eq("wishlist_id", id!)
-        .order("priority", { ascending: false })
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching wishlist items:", error);
+        throw error;
+      }
+      console.log("Fetched items:", data);
       return data;
     },
     enabled: !!id,
@@ -186,7 +190,17 @@ const WishlistDetail = () => {
     }
   };
 
-  const handleEditClick = (item: any) => {
+  const handleEditClick = (item: {
+    id: string;
+    name: string;
+    description: string | null;
+    price_min: number | null;
+    price_max: number | null;
+    external_link: string | null;
+    image_url: string | null;
+    category: string | null;
+    priority: number;
+  }) => {
     setEditingItemId(item.id);
     setItemFormData({
       name: item.name,
@@ -592,15 +606,15 @@ const WishlistDetail = () => {
                               </p>
                             )}
                             
-                            {/* Thank You Button (owner only) */}
-                            {isOwner && (
+                            {/* Thank You Button (owner only) - Requires migration to be run first */}
+                            {/* {isOwner && (
                               <ThankYouDialog
                                 claimId={completedClaim.id}
                                 claimerName={completedClaim.is_anonymous ? "Anonymous Giver" : completedClaim.claimer_name}
                                 itemName={item.name}
                                 existingMessage={completedClaim.thank_you_message}
                               />
-                            )}
+                            )} */}
                           </div>
                         )}
                       </div>
@@ -686,8 +700,8 @@ const WishlistDetail = () => {
           )}
         </div>
 
-        {/* Cash Funds Section */}
-        {wishlist && (
+        {/* Cash Funds Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <CashFunds
               wishlistId={wishlist.id}
@@ -695,10 +709,10 @@ const WishlistDetail = () => {
               isOwner={isOwner}
             />
           </div>
-        )}
+        )} */}
 
-        {/* Guest Book Section */}
-        {wishlist && (
+        {/* Guest Book Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <GuestBook
               wishlistId={wishlist.id}
@@ -706,7 +720,7 @@ const WishlistDetail = () => {
               currentUserId={session?.user?.id}
             />
           </div>
-        )}
+        )} */}
       </main>
 
       {/* Edit Item Dialog */}

@@ -328,8 +328,8 @@ const SharedWishlist = () => {
           )}
         </div>
 
-        {/* Cash Funds Section */}
-        {wishlist && (
+        {/* Cash Funds Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <CashFunds
               wishlistId={wishlist.id}
@@ -337,17 +337,17 @@ const SharedWishlist = () => {
               isOwner={false}
             />
           </div>
-        )}
+        )} */}
 
-        {/* Guest Book Section */}
-        {wishlist && (
+        {/* Guest Book Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <GuestBook
               wishlistId={wishlist.id}
               wishlistOwnerId={wishlist.user_id}
             />
           </div>
-        )}
+        )} */}
       </main>
 
       {selectedItem && (

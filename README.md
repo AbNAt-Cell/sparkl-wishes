@@ -1,5 +1,6 @@
 # Sparkl Wishes 🎁
 
+
 A beautiful wishlist platform for life's celebrations, featuring secure payments and an integrated wallet system.
 
 ## Project info

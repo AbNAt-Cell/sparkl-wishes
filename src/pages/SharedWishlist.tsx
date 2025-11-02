@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +23,28 @@ import { Progress } from "@/components/ui/progress";
 const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
   const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
   const [claimDialogOpen, setClaimDialogOpen] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState<{ id: string; name: string; price: number | null } | null>(null);
+  const [selectedItem, setSelectedItem] = React.useState<{ 
+    id: string; 
+    name: string; 
+    price: number | null;
+    allowGroupGifting: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const { data: wishlist, isLoading: wishlistLoading } = useQuery({
     queryKey: ["shared-wishlist", shareCode],
@@ -52,13 +73,14 @@ const SharedWishlist = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      // Cast to include allow_group_gifting which may not be in the type yet
+      return data as Array<typeof data[0] & { allow_group_gifting?: boolean }>;
     },
     enabled: !!wishlist?.id,
   });
 
-  const handleClaimClick = (itemId: string, itemName: string, price: number | null) => {
-    setSelectedItem({ id: itemId, name: itemName, price });
+  const handleClaimClick = (itemId: string, itemName: string, price: number | null, allowGroupGifting: boolean) => {
+    setSelectedItem({ id: itemId, name: itemName, price, allowGroupGifting });
     setClaimDialogOpen(true);
   };
 
@@ -294,7 +316,7 @@ const SharedWishlist = () => {
                         <Button
                           className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
                           size="sm"
-                          onClick={() => handleClaimClick(item.id, item.name, item.price_max)}
+                          onClick={() => handleClaimClick(item.id, item.name, item.price_max, item.allow_group_gifting || false)}
                         >
                           <Gift className="w-4 h-4 mr-2" />
                           Claim Gift
@@ -358,6 +380,9 @@ const SharedWishlist = () => {
           itemName={selectedItem.name}
           itemPrice={selectedItem.price}
           onClaimSuccess={refetchItems}
+          currentUserId={session?.user?.id}
+          wishlistOwnerId={wishlist?.user_id}
+          allowGroupGifting={selectedItem.allowGroupGifting}
         />
       )}
     </div>

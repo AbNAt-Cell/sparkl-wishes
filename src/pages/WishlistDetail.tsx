@@ -37,6 +37,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const WishlistDetail = () => {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ const WishlistDetail = () => {
     image_url: "",
     category: "",
     priority: "0",
+    allow_group_gifting: false,
   });
 
   useEffect(() => {
@@ -157,6 +159,7 @@ const WishlistDetail = () => {
       image_url: "",
       category: "",
       priority: "0",
+      allow_group_gifting: false,
     });
     setImagePreview(null);
     setEditingItemId(null);
@@ -178,6 +181,7 @@ const WishlistDetail = () => {
         image_url: itemFormData.image_url || null,
         category: itemFormData.category || null,
         priority: parseInt(itemFormData.priority) || 0,
+        allow_group_gifting: itemFormData.allow_group_gifting,
       });
 
     if (error) {
@@ -200,6 +204,7 @@ const WishlistDetail = () => {
     image_url: string | null;
     category: string | null;
     priority: number;
+    allow_group_gifting?: boolean;
   }) => {
     setEditingItemId(item.id);
     setItemFormData({
@@ -211,6 +216,7 @@ const WishlistDetail = () => {
       image_url: item.image_url || "",
       category: item.category || "",
       priority: item.priority?.toString() || "0",
+      allow_group_gifting: item.allow_group_gifting || false,
     });
     setImagePreview(item.image_url);
     setEditDialogOpen(true);
@@ -231,6 +237,7 @@ const WishlistDetail = () => {
         image_url: itemFormData.image_url || null,
         category: itemFormData.category || null,
         priority: parseInt(itemFormData.priority) || 0,
+        allow_group_gifting: itemFormData.allow_group_gifting,
       })
       .eq("id", editingItemId);
 
@@ -507,6 +514,42 @@ const WishlistDetail = () => {
                             )}
                           </div>
                         </div>
+
+                        {/* Claim Type Selection */}
+                        <div className="space-y-3 pt-2">
+                          <Label className="text-base font-semibold">Who can claim this item?</Label>
+                          <RadioGroup
+                            value={itemFormData.allow_group_gifting ? "group" : "single"}
+                            onValueChange={(value) => 
+                              setItemFormData({ ...itemFormData, allow_group_gifting: value === "group" })
+                            }
+                            className="space-y-3"
+                          >
+                            <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                              <RadioGroupItem value="single" id="single-claim" className="mt-1" />
+                              <div className="flex-1">
+                                <Label htmlFor="single-claim" className="font-medium cursor-pointer">
+                                  Single Person
+                                </Label>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Only one person can claim and pay for this entire item
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                              <RadioGroupItem value="group" id="group-claim" className="mt-1" />
+                              <div className="flex-1">
+                                <Label htmlFor="group-claim" className="font-medium cursor-pointer">
+                                  Group Gifting
+                                </Label>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Multiple people can contribute towards this item
+                                </p>
+                              </div>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
                           <Button type="submit" className="w-full shadow-elegant">
                             Add Item
                           </Button>
@@ -860,6 +903,42 @@ const WishlistDetail = () => {
                   Higher priority items appear first (3 = highest, 0 = lowest)
                 </p>
               </div>
+
+              {/* Claim Type Selection */}
+              <div className="space-y-3 pt-2">
+                <Label className="text-base font-semibold">Who can claim this item?</Label>
+                <RadioGroup
+                  value={itemFormData.allow_group_gifting ? "group" : "single"}
+                  onValueChange={(value) => 
+                    setItemFormData({ ...itemFormData, allow_group_gifting: value === "group" })
+                  }
+                  className="space-y-3"
+                >
+                  <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                    <RadioGroupItem value="single" id="edit-single-claim" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="edit-single-claim" className="font-medium cursor-pointer">
+                        Single Person
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Only one person can claim and pay for this entire item
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                    <RadioGroupItem value="group" id="edit-group-claim" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="edit-group-claim" className="font-medium cursor-pointer">
+                        Group Gifting
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Multiple people can contribute towards this item
+                      </p>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
               <Button type="submit" className="w-full shadow-elegant">
                 Update Item
               </Button>

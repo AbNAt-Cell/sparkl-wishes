@@ -23,6 +23,70 @@ import {
 import { getCurrencySymbol } from "@/lib/utils";
 import { Info, Shield, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
+
+// Funding Progress Component for Group Gifts
+const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; targetAmount: number; currency: string }) => {
+  const { data: fundingData } = useQuery({
+    queryKey: ["funding-progress", itemId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("claims")
+        .select("contribution_amount, payment_status")
+        .eq("item_id", itemId)
+        .eq("payment_status", "completed");
+
+      if (error) throw error;
+
+      const totalRaised = data?.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0) || 0;
+      const remainingAmount = targetAmount - totalRaised;
+      const percentageFunded = (totalRaised / targetAmount) * 100;
+
+      return {
+        totalRaised,
+        remainingAmount,
+        percentageFunded,
+        contributorsCount: data?.length || 0,
+      };
+    },
+    enabled: !!itemId,
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
+  const totalRaised = fundingData?.totalRaised || 0;
+  const remainingAmount = fundingData?.remainingAmount || targetAmount;
+  const percentageFunded = fundingData?.percentageFunded || 0;
+  const contributorsCount = fundingData?.contributorsCount || 0;
+
+  return (
+    <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-green-50/50 to-blue-50/50">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">Funding Progress</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {contributorsCount} {contributorsCount === 1 ? 'contributor' : 'contributors'} so far
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-xl font-bold text-primary">
+            {getCurrencySymbol(currency)}{totalRaised.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            of {getCurrencySymbol(currency)}{targetAmount.toFixed(2)}
+          </p>
+        </div>
+      </div>
+      <Progress value={percentageFunded} className="h-2" />
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{percentageFunded.toFixed(0)}% funded</span>
+        <span className="font-medium text-foreground">
+          {getCurrencySymbol(currency)}{remainingAmount.toFixed(2)} remaining
+        </span>
+      </div>
+    </div>
+  );
+};
 
 interface ClaimItemDialogProps {
   open: boolean;
@@ -31,6 +95,9 @@ interface ClaimItemDialogProps {
   itemName: string;
   itemPrice: number | null;
   onClaimSuccess: () => void;
+  currentUserId?: string | null;
+  wishlistOwnerId?: string | null;
+  allowGroupGifting?: boolean;
 }
 
 export const ClaimItemDialog = ({
@@ -40,6 +107,9 @@ export const ClaimItemDialog = ({
   itemName,
   itemPrice,
   onClaimSuccess,
+  currentUserId,
+  wishlistOwnerId,
+  allowGroupGifting = false,
 }: ClaimItemDialogProps) => {
   const [formData, setFormData] = useState({
     name: "",
@@ -55,14 +125,16 @@ export const ClaimItemDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
-  const [wishlistOwnerId, setWishlistOwnerId] = useState<string | null>(null);
 
   // Get Paystack key from environment
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
+  // Check if user is trying to claim their own item
+  const isOwnItem = currentUserId && wishlistOwnerId && currentUserId === wishlistOwnerId;
+
   useEffect(() => {
-    // Fetch wishlist's currency (not the claimer's location-based currency)
-    const fetchWishlistCurrency = async () => {
+    const initializeDialog = async () => {
+      // Fetch wishlist's currency
       const { data, error } = await supabase
         .from("wishlist_items")
         .select("wishlists(currency)")
@@ -74,19 +146,50 @@ export const ClaimItemDialog = ({
       } else {
         setCurrency("USD"); // Fallback
       }
+
+      // Auto-fill form with user's profile data if logged in
+      if (currentUserId && !formData.isAnonymous) {
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", currentUserId)
+          .single();
+
+        if (!profileError && profileData) {
+          // Get user email from auth
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          setFormData(prev => ({
+            ...prev,
+            name: profileData.full_name || "",
+            email: user?.email || "",
+            phone: prev.phone, // Keep phone as is (not in profile)
+          }));
+        }
+      }
     };
 
     if (open && itemId) {
-      fetchWishlistCurrency();
+      initializeDialog();
     }
-  }, [open, itemId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, itemId, currentUserId]);
 
   const handlePaystackPayment = async (claimId: string) => {
-    if (!itemPrice) {
-      toast.error("No payment amount specified");
+    // Fetch the claim to get the exact contribution amount
+    const { data: claimData, error: fetchError } = await supabase
+      .from("claims")
+      .select("contribution_amount")
+      .eq("id", claimId)
+      .single();
+
+    if (fetchError || !claimData || !claimData.contribution_amount) {
+      toast.error("Failed to fetch payment amount");
       setIsLoadingPayment(false);
       return;
     }
+
+    const finalAmount = claimData.contribution_amount;
 
     // @ts-expect-error - Paystack is loaded via script
     if (!window.PaystackPop) {
@@ -94,13 +197,6 @@ export const ClaimItemDialog = ({
       setIsLoadingPayment(false);
       return;
     }
-
-    // Determine the amount to charge
-    // For partial contributions, use the contribution amount
-    // For full claims, use the item price
-    const finalAmount = claimType === "partial" && contributionAmount 
-      ? parseFloat(contributionAmount)
-      : itemPrice;
     
     // Convert price to kobo (Paystack uses smallest currency unit)
     const amountInKobo = Math.round(finalAmount * 100);
@@ -186,8 +282,84 @@ export const ClaimItemDialog = ({
     setIsSubmitting(true);
 
     try {
-      // Validate partial contribution amount
-      if (claimType === "partial") {
+      // Check if item is already claimed (only for single-claim items)
+      if (!allowGroupGifting) {
+        const { data: existingClaims, error: checkError } = await supabase
+          .from("claims")
+          .select("id, payment_status")
+          .eq("item_id", itemId)
+          .in("payment_status", ["pending", "completed"]);
+
+        if (checkError) {
+          console.error("Error checking existing claims:", checkError);
+        }
+
+        if (existingClaims && existingClaims.length > 0) {
+          toast.error("This item has already been claimed by someone else!");
+          setIsSubmitting(false);
+          onOpenChange(false);
+          return;
+        }
+      }
+
+      // For group gifting, check funding progress and prevent overpayment
+      if (allowGroupGifting && itemPrice && itemPrice > 0) {
+        // Get all completed contributions so far
+        const { data: existingClaims, error: checkError } = await supabase
+          .from("claims")
+          .select("contribution_amount, payment_status")
+          .eq("item_id", itemId)
+          .eq("payment_status", "completed");
+
+        if (checkError) {
+          console.error("Error checking existing contributions:", checkError);
+        }
+
+        // Calculate total raised so far
+        const totalRaised = existingClaims?.reduce((sum, claim) => {
+          return sum + (claim.contribution_amount || 0);
+        }, 0) || 0;
+
+        const remainingAmount = itemPrice - totalRaised;
+
+        // Check if item is already fully funded
+        if (remainingAmount <= 0) {
+          toast.error("This item is already fully funded! No more contributions needed.");
+          setIsSubmitting(false);
+          onOpenChange(false);
+          return;
+        }
+
+        // Validate contribution amount for group gifts
+        if (claimType === "partial") {
+          const contributionValue = parseFloat(contributionAmount);
+          if (isNaN(contributionValue) || contributionValue <= 0) {
+            toast.error("Please enter a valid contribution amount");
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Prevent overpayment
+          if (contributionValue > remainingAmount) {
+            toast.error(
+              `Contribution would exceed target! Only ${getCurrencySymbol(currency)}${remainingAmount.toFixed(2)} needed to fully fund this item.`
+            );
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          // Full payment for group gift = remaining amount
+          // This ensures no overpayment even if someone chooses "full"
+          if (remainingAmount < itemPrice) {
+            toast.info(
+              `This item only needs ${getCurrencySymbol(currency)}${remainingAmount.toFixed(2)} more to be fully funded.`
+            );
+          }
+        }
+      }
+
+      // Validate partial contribution amount for non-group gifts
+      if (!allowGroupGifting && claimType === "partial") {
         const amount = parseFloat(contributionAmount);
         if (isNaN(amount) || amount <= 0) {
           toast.error("Please enter a valid contribution amount");
@@ -198,6 +370,31 @@ export const ClaimItemDialog = ({
           toast.error(`Contribution cannot exceed ${getCurrencySymbol(currency)}${itemPrice}`);
           setIsSubmitting(false);
           return;
+        }
+      }
+
+      // Calculate the actual payment amount
+      let paymentAmount = itemPrice || 0;
+      
+      if (allowGroupGifting && itemPrice && itemPrice > 0) {
+        // For group gifts, calculate remaining amount needed
+        const { data: existingClaims } = await supabase
+          .from("claims")
+          .select("contribution_amount")
+          .eq("item_id", itemId)
+          .eq("payment_status", "completed");
+
+        const totalRaised = existingClaims?.reduce((sum, claim) => {
+          return sum + (claim.contribution_amount || 0);
+        }, 0) || 0;
+
+        const remainingAmount = itemPrice - totalRaised;
+
+        if (claimType === "partial") {
+          paymentAmount = parseFloat(contributionAmount);
+        } else {
+          // Full payment for group gift = remaining amount (prevents overpayment)
+          paymentAmount = remainingAmount;
         }
       }
 
@@ -215,8 +412,8 @@ export const ClaimItemDialog = ({
           expires_at: itemPrice && itemPrice > 0 
             ? new Date(Date.now() + 10 * 60 * 1000).toISOString() 
             : null,
-          // is_group_gift: claimType === "partial", // Requires migration
-          // contribution_amount: claimType === "partial" ? parseFloat(contributionAmount) : null, // Requires migration
+          is_group_gift: allowGroupGifting,
+          contribution_amount: paymentAmount,
         })
         .select()
         .single();
@@ -252,6 +449,43 @@ export const ClaimItemDialog = ({
     handlePaystackPayment(claimId);
   };
 
+  const handleAnonymousToggle = async (checked: boolean) => {
+    if (checked) {
+      // Clear form when going anonymous
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        notes: "",
+        isAnonymous: true,
+      });
+    } else {
+      // Re-populate with user data when unchecking anonymous
+      if (currentUserId) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", currentUserId)
+          .single();
+
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        setFormData({
+          name: profileData?.full_name || "",
+          email: user?.email || "",
+          phone: "",
+          notes: "",
+          isAnonymous: false,
+        });
+      } else {
+        setFormData({
+          ...formData,
+          isAnonymous: false,
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     // Load Paystack script
     const script = document.createElement("script");
@@ -283,31 +517,46 @@ export const ClaimItemDialog = ({
               Claim "{itemName}"
             </DialogTitle>
             <DialogDescription className="text-base">
-              {itemPrice && itemPrice > 0 ? (
-                <div className="space-y-2">
-                  <p>Fill in your details below to claim this gift and proceed to payment.</p>
-                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Amount to pay:</span>
-                      <span className="text-xl font-bold text-primary">
-                        {getCurrencySymbol(currency)}{itemPrice.toFixed(2)} {currency}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p>Fill in your details below to claim this gift (no payment required).</p>
-              )}
+              {itemPrice && itemPrice > 0 
+                ? "Fill in your details below to claim this gift and proceed to payment."
+                : "Fill in your details below to claim this gift (no payment required)."}
             </DialogDescription>
           </DialogHeader>
           
+          {/* Prevent users from claiming their own items */}
+          {isOwnItem ? (
+            <Alert className="bg-destructive/10 border-destructive/20">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-destructive">
+                You cannot claim items from your own wishlist. Share your wishlist with friends and family so they can get gifts for you!
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+          {/* Payment amount display - outside DialogDescription to avoid nesting issues */}
+          {itemPrice && itemPrice > 0 && !allowGroupGifting && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Amount to pay:</span>
+                <span className="text-xl font-bold text-primary">
+                  {getCurrencySymbol(currency)}{itemPrice.toFixed(2)} {currency}
+                </span>
+              </div>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          {/* Claim Type Selection (Group Gifting) - Requires migration to be run first */}
-          {/* {itemPrice && itemPrice > 0 && (
+          {/* Funding Progress for Group Gifting */}
+          {allowGroupGifting && itemPrice && itemPrice > 0 && (
+            <FundingProgress itemId={itemId} targetAmount={itemPrice} currency={currency} />
+          )}
+
+          {/* Claim Type Selection (Group Gifting) */}
+          {allowGroupGifting && itemPrice && itemPrice > 0 && (
             <div className="space-y-4 p-4 rounded-lg border bg-gradient-to-br from-purple-50/30 to-pink-50/30">
               <div className="flex items-center gap-2 pb-2 border-b">
                 <Info className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium text-sm">Claim Type</h3>
+                <h3 className="font-medium text-sm">How much would you like to contribute?</h3>
               </div>
               
               <RadioGroup value={claimType} onValueChange={(value: "full" | "partial") => setClaimType(value)}>
@@ -316,10 +565,10 @@ export const ClaimItemDialog = ({
                     <RadioGroupItem value="full" id="full" />
                     <div className="flex-1">
                       <Label htmlFor="full" className="cursor-pointer font-medium">
-                        Full Gift ({getCurrencySymbol(currency)}{itemPrice.toFixed(2)})
+                        Fund Remaining Amount
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Purchase the entire gift yourself
+                        Pay whatever is left to fully fund this item
                       </p>
                     </div>
                   </div>
@@ -367,7 +616,7 @@ export const ClaimItemDialog = ({
                 </div>
               </RadioGroup>
             </div>
-          )} */}
+          )}
 
           {/* Personal Information Section */}
           <div className="space-y-4">
@@ -470,9 +719,7 @@ export const ClaimItemDialog = ({
               <Checkbox
                 id="anonymous"
                 checked={formData.isAnonymous}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isAnonymous: checked as boolean })
-                }
+                onCheckedChange={handleAnonymousToggle}
                 className="mt-1"
               />
               <div className="space-y-1">
@@ -580,6 +827,8 @@ export const ClaimItemDialog = ({
             )}
           </div>
         </form>
+        </>
+          )}
       </DialogContent>
     </Dialog>
     </TooltipProvider>

@@ -210,14 +210,20 @@ const SharedWishlist = () => {
               )}
             </div>
 
-            {/* Progress Indicator */}
+            {/* Progress Indicator - compact */}
             {totalItems > 0 && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-muted-foreground">{claimedItems}/{totalItems} claimed</span>
-                  <span className="text-muted-foreground">{Math.round(progressPercentage)}%</span>
+              <div className="mt-2">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-[72px] text-xs font-medium text-muted-foreground">
+                    {claimedItems}/{totalItems}
+                  </div>
+                  <div className="flex-1 max-w-xs">
+                    <Progress value={progressPercentage} className="h-1.5 rounded-full" />
+                  </div>
+                  <div className="w-10 text-right text-xs text-muted-foreground">
+                    {Math.round(progressPercentage)}%
+                  </div>
                 </div>
-                <Progress value={progressPercentage} className="h-1.5" />
               </div>
             )}
           </CardHeader>

@@ -574,28 +574,21 @@ const WishlistDetail = () => {
                 </div>
               </div>
 
-              {/* Progress Indicators */}
+              {/* Progress Indicators - compact */}
               {totalItems > 0 && (
-                <div className="space-y-4">
-                  {/* Items Claimed Progress */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">Items Claimed</span>
-                      <span className="text-muted-foreground">{claimedItems}/{totalItems} ({Math.round(progressPercentage)}%)</span>
-                    </div>
-                    <Progress value={progressPercentage} className="h-2" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-muted-foreground min-w-[96px]">Items</span>
+                    <div className="flex-1 max-w-sm"><Progress value={progressPercentage} className="h-1.5 rounded-full" /></div>
+                    <span className="text-xs text-muted-foreground w-16 text-right">{claimedItems}/{totalItems}</span>
                   </div>
-
-                  {/* Funding Progress */}
                   {totalFunding > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">Total Raised</span>
-                        <span className="text-muted-foreground">
-                          {getCurrencySymbol(wishlist.currency)}{raisedFunding.toFixed(0)} / {getCurrencySymbol(wishlist.currency)}{totalFunding.toFixed(0)} ({Math.round(fundingPercentage)}%)
-                        </span>
-                      </div>
-                      <Progress value={fundingPercentage} className="h-2 [&>div]:bg-green-500" />
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-muted-foreground min-w-[96px]">Funding</span>
+                      <div className="flex-1 max-w-sm"><Progress value={fundingPercentage} className="h-1.5 rounded-full [&>div]:bg-green-500" /></div>
+                      <span className="text-xs text-muted-foreground w-28 text-right">
+                        {Math.round(fundingPercentage)}%
+                      </span>
                     </div>
                   )}
                 </div>

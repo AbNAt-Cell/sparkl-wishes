@@ -16,6 +16,10 @@ import Terms from "./pages/Terms";
 import WishlistDetail from "./pages/WishlistDetail";
 import SharedWishlist from "./pages/SharedWishlist";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./pages/admin/Layout";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminUsers from "./pages/admin/Users";
+import AdminGuard from "@/components/AdminGuard";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +41,17 @@ const App = () => (
           <Route path="/terms" element={<Terms />} />
           <Route path="/wishlist/:id" element={<WishlistDetail />} />
           <Route path="/share/:shareCode" element={<SharedWishlist />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminGuard>
+                <AdminLayout />
+              </AdminGuard>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

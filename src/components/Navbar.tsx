@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Gift, LogOut, User, Wallet, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,20 @@ interface NavbarProps {
 
 const Navbar = ({ user }: NavbarProps) => {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const role = session?.user?.app_metadata?.role;
+        setIsAdmin(role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -41,7 +55,7 @@ const Navbar = ({ user }: NavbarProps) => {
         </button>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          {user && (
+          {user && isAdmin && (
             <Button 
               variant="ghost" 
               size="sm"

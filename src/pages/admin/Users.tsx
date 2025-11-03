@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, ShieldCheck, ShieldX, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const AdminUsers: React.FC = () => {
   const [q, setQ] = useState("");
@@ -12,10 +13,10 @@ const AdminUsers: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, is_admin, is_banned")
         .order("full_name", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; full_name: string | null; avatar_url: string | null }>;
+      return data as Array<{ id: string; full_name: string | null; avatar_url: string | null; is_admin?: boolean; is_banned?: boolean }>;
     },
   });
 
@@ -31,7 +32,28 @@ const AdminUsers: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Users</span>
-          <span className="text-xs text-muted-foreground">{filtered.length} result(s)</span>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const { data, error } = await supabase.functions.invoke("admin-actions", {
+                  body: { action: "export_users_csv" },
+                });
+                if (error) return;
+                const blob = new Blob([data as unknown as string], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "users.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Upload className="w-4 h-4 mr-2" /> Export CSV
+            </Button>
+            <span className="text-xs text-muted-foreground">{filtered.length} result(s)</span>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -65,7 +87,35 @@ const AdminUsers: React.FC = () => {
                     <div className="text-xs text-muted-foreground truncate max-w-[240px]">{user.id}</div>
                   </div>
                 </div>
-                {/* Future: actions (ban/unban, reset, etc.) behind admin functions */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={user.is_admin ? "outline" : "default"}
+                    size="sm"
+                    onClick={async () => {
+                      await supabase.functions.invoke("admin-actions", {
+                        body: { action: "set_user_flags", payload: { userId: user.id, isAdmin: !user.is_admin } },
+                      });
+                      await supabase.removeAllChannels();
+                      location.reload();
+                    }}
+                  >
+                    {user.is_admin ? <ShieldX className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+                    {user.is_admin ? "Demote" : "Promote"}
+                  </Button>
+                  <Button
+                    variant={user.is_banned ? "destructive" : "outline"}
+                    size="sm"
+                    onClick={async () => {
+                      await supabase.functions.invoke("admin-actions", {
+                        body: { action: "set_user_flags", payload: { userId: user.id, isBanned: !user.is_banned } },
+                      });
+                      await supabase.removeAllChannels();
+                      location.reload();
+                    }}
+                  >
+                    {user.is_banned ? "Unban" : "Ban"}
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

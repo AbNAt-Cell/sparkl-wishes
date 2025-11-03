@@ -51,15 +51,15 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-hero opacity-10" />
-        <div className="container mx-auto px-4 py-20 relative">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="container mx-auto px-4 py-12 md:py-20 relative">
+          <div className="grid gap-8 md:gap-12 lg:grid-cols-2 items-center">
             <div className="space-y-8">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary">
                 <Sparkles className="w-4 h-4" />
                 Make every celebration memorable
               </div>
               
-              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
                 Create Beautiful{" "}
                 <span className="bg-gradient-hero bg-clip-text text-transparent">
                   Wishlists
@@ -67,7 +67,7 @@ const Index = () => {
                 for Life's Celebrations
               </h1>
               
-              <p className="text-xl text-muted-foreground">
+              <p className="text-base md:text-xl text-muted-foreground">
                 Share your special moments with loved ones. Create wishlists for weddings, 
                 birthdays, anniversaries, and more. Let your guests celebrate with the 
                 perfect gifts.
@@ -96,11 +96,13 @@ const Index = () => {
 
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-hero rounded-3xl blur-3xl opacity-20" />
-              <img
-                src={heroImage}
-                alt="Celebration wishlist platform"
-                className="relative rounded-3xl shadow-glow w-full"
-              />
+              <div className="relative w-full rounded-3xl overflow-hidden shadow-glow">
+                <img
+                  src={heroImage}
+                  alt="Celebration wishlist platform"
+                  className="w-full h-full object-cover aspect-video"
+                />
+              </div>
             </div>
           </div>
         </div>

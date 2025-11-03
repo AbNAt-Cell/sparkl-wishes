@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +23,28 @@ import { Progress } from "@/components/ui/progress";
 const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
   const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
   const [claimDialogOpen, setClaimDialogOpen] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState<{ id: string; name: string; price: number | null } | null>(null);
+  const [selectedItem, setSelectedItem] = React.useState<{ 
+    id: string; 
+    name: string; 
+    price: number | null;
+    allowGroupGifting: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const { data: wishlist, isLoading: wishlistLoading } = useQuery({
     queryKey: ["shared-wishlist", shareCode],
@@ -52,13 +73,14 @@ const SharedWishlist = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      // Cast to include allow_group_gifting which may not be in the type yet
+      return data as Array<typeof data[0] & { allow_group_gifting?: boolean }>;
     },
     enabled: !!wishlist?.id,
   });
 
-  const handleClaimClick = (itemId: string, itemName: string, price: number | null) => {
-    setSelectedItem({ id: itemId, name: itemName, price });
+  const handleClaimClick = (itemId: string, itemName: string, price: number | null, allowGroupGifting: boolean) => {
+    setSelectedItem({ id: itemId, name: itemName, price, allowGroupGifting });
     setClaimDialogOpen(true);
   };
 
@@ -104,7 +126,7 @@ const SharedWishlist = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 overflow-x-hidden">
         <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
@@ -136,20 +158,20 @@ const SharedWishlist = () => {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-6 max-w-7xl">
+        <main className="container mx-auto safe-container py-6 max-w-7xl">
         {/* Wishlist Header */}
         <Card className="shadow-lg mb-6 overflow-hidden border-0 bg-white">
           {wishlist.cover_image && (
-            <div className="h-48 w-full overflow-hidden relative">
+            <div className="w-full overflow-hidden relative">
               <img
                 src={wishlist.cover_image}
                 alt={wishlist.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover aspect-video"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">{wishlist.title}</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold leading-tight">{wishlist.title}</h1>
                   <Badge
                     className={`${eventTypeColors[wishlist.event_type as keyof typeof eventTypeColors]} backdrop-blur-sm`}
                   >
@@ -162,7 +184,7 @@ const SharedWishlist = () => {
           <CardHeader className="space-y-3 py-3 px-4">
             {!wishlist.cover_image && (
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{wishlist.title}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold leading-tight">{wishlist.title}</h1>
                 <Badge className={eventTypeColors[wishlist.event_type as keyof typeof eventTypeColors]}>
                   {wishlist.event_type.replace("_", " ")}
                 </Badge>
@@ -203,8 +225,26 @@ const SharedWishlist = () => {
 
         {/* Wishlist Items */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Items ({items?.length || 0})</h2>
+            <div className="flex items-center gap-2">
+              {wishlist && (
+                <ShareButtons
+                  shareUrl={window.location.href}
+                  title={wishlist.title}
+                  description={wishlist.description || ""}
+                />
+              )}
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => navigate("/")}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Create Yours
+              </Button>
+            </div>
           </div>
           
           {itemsLoading ? (
@@ -213,7 +253,7 @@ const SharedWishlist = () => {
               <p className="text-sm text-muted-foreground">Loading items...</p>
             </div>
           ) : items && items.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {items.map((item) => {
                 const isClaimed = isItemClaimed(item.claims);
                 const claimInfo = getCompletedClaim(item.claims);
@@ -227,7 +267,7 @@ const SharedWishlist = () => {
                 return (
                   <Card key={item.id} className={`overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 group ${isClaimed ? 'opacity-60' : 'bg-white'}`}>
                     {item.image_url && (
-                      <div className="h-48 w-full overflow-hidden relative">
+                      <div className="w-full overflow-hidden relative aspect-square sm:aspect-video">
                         <img
                           src={item.image_url}
                           alt={item.name}
@@ -294,7 +334,7 @@ const SharedWishlist = () => {
                         <Button
                           className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
                           size="sm"
-                          onClick={() => handleClaimClick(item.id, item.name, item.price_max)}
+                          onClick={() => handleClaimClick(item.id, item.name, item.price_max, item.allow_group_gifting || false)}
                         >
                           <Gift className="w-4 h-4 mr-2" />
                           Claim Gift
@@ -328,8 +368,8 @@ const SharedWishlist = () => {
           )}
         </div>
 
-        {/* Cash Funds Section */}
-        {wishlist && (
+        {/* Cash Funds Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <CashFunds
               wishlistId={wishlist.id}
@@ -337,17 +377,17 @@ const SharedWishlist = () => {
               isOwner={false}
             />
           </div>
-        )}
+        )} */}
 
-        {/* Guest Book Section */}
-        {wishlist && (
+        {/* Guest Book Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <GuestBook
               wishlistId={wishlist.id}
               wishlistOwnerId={wishlist.user_id}
             />
           </div>
-        )}
+        )} */}
       </main>
 
       {selectedItem && (
@@ -358,6 +398,9 @@ const SharedWishlist = () => {
           itemName={selectedItem.name}
           itemPrice={selectedItem.price}
           onClaimSuccess={refetchItems}
+          currentUserId={session?.user?.id}
+          wishlistOwnerId={wishlist?.user_id}
+          allowGroupGifting={selectedItem.allowGroupGifting}
         />
       )}
     </div>

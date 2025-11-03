@@ -73,10 +73,10 @@ const Auth = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-hero mb-4 shadow-glow">
             <Gift className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-2">
             Sparkl Wishes
           </h1>
-          <p className="text-muted-foreground flex items-center justify-center gap-2">
+          <p className="text-sm sm:text-base text-muted-foreground flex items-center justify_center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             Create beautiful wishlists for life's celebrations
           </p>

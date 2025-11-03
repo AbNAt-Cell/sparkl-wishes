@@ -37,6 +37,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const WishlistDetail = () => {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ const WishlistDetail = () => {
     image_url: "",
     category: "",
     priority: "0",
+    allow_group_gifting: false,
   });
 
   useEffect(() => {
@@ -92,14 +94,18 @@ const WishlistDetail = () => {
   const { data: items, isLoading: itemsLoading, refetch: refetchItems } = useQuery({
     queryKey: ["wishlist-items", id],
     queryFn: async () => {
+      console.log("Fetching items for wishlist:", id);
       const { data, error } = await supabase
         .from("wishlist_items")
-        .select("*, claims(id, claimer_name, is_anonymous, payment_status, thank_you_message, thank_you_sent_at)")
+        .select("*, claims(id, claimer_name, is_anonymous, payment_status)")
         .eq("wishlist_id", id!)
-        .order("priority", { ascending: false })
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching wishlist items:", error);
+        throw error;
+      }
+      console.log("Fetched items:", data);
       return data;
     },
     enabled: !!id,
@@ -153,6 +159,7 @@ const WishlistDetail = () => {
       image_url: "",
       category: "",
       priority: "0",
+      allow_group_gifting: false,
     });
     setImagePreview(null);
     setEditingItemId(null);
@@ -174,6 +181,7 @@ const WishlistDetail = () => {
         image_url: itemFormData.image_url || null,
         category: itemFormData.category || null,
         priority: parseInt(itemFormData.priority) || 0,
+        allow_group_gifting: itemFormData.allow_group_gifting,
       });
 
     if (error) {
@@ -186,7 +194,18 @@ const WishlistDetail = () => {
     }
   };
 
-  const handleEditClick = (item: any) => {
+  const handleEditClick = (item: {
+    id: string;
+    name: string;
+    description: string | null;
+    price_min: number | null;
+    price_max: number | null;
+    external_link: string | null;
+    image_url: string | null;
+    category: string | null;
+    priority: number;
+    allow_group_gifting?: boolean;
+  }) => {
     setEditingItemId(item.id);
     setItemFormData({
       name: item.name,
@@ -197,6 +216,7 @@ const WishlistDetail = () => {
       image_url: item.image_url || "",
       category: item.category || "",
       priority: item.priority?.toString() || "0",
+      allow_group_gifting: item.allow_group_gifting || false,
     });
     setImagePreview(item.image_url);
     setEditDialogOpen(true);
@@ -217,6 +237,7 @@ const WishlistDetail = () => {
         image_url: itemFormData.image_url || null,
         category: itemFormData.category || null,
         priority: parseInt(itemFormData.priority) || 0,
+        allow_group_gifting: itemFormData.allow_group_gifting,
       })
       .eq("id", editingItemId);
 
@@ -342,10 +363,10 @@ const WishlistDetail = () => {
             </div>
           )}
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-3">
-                  <CardTitle className="text-4xl">{wishlist.title}</CardTitle>
+                  <CardTitle className="text-2xl md:text-4xl leading-tight">{wishlist.title}</CardTitle>
                   <Badge
                     className={`${
                       eventTypeColors[wishlist.event_type as keyof typeof eventTypeColors]
@@ -358,7 +379,7 @@ const WishlistDetail = () => {
                   {wishlist.description || "No description"}
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <ShareButtons
                   shareUrl={`${window.location.origin}/share/${wishlist.share_code}`}
                   title={wishlist.title}
@@ -372,7 +393,7 @@ const WishlistDetail = () => {
                         Add Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-h-[90vh]">
+                    <DialogContent className="w-full max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Add New Item</DialogTitle>
                         <DialogDescription>
@@ -399,7 +420,7 @@ const WishlistDetail = () => {
                             rows={3}
                           />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="price_min">Min Price</Label>
                             <Input
@@ -493,6 +514,42 @@ const WishlistDetail = () => {
                             )}
                           </div>
                         </div>
+
+                        {/* Claim Type Selection */}
+                        <div className="space-y-3 pt-2">
+                          <Label className="text-base font-semibold">Who can claim this item?</Label>
+                          <RadioGroup
+                            value={itemFormData.allow_group_gifting ? "group" : "single"}
+                            onValueChange={(value) => 
+                              setItemFormData({ ...itemFormData, allow_group_gifting: value === "group" })
+                            }
+                            className="space-y-3"
+                          >
+                            <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                              <RadioGroupItem value="single" id="single-claim" className="mt-1" />
+                              <div className="flex-1">
+                                <Label htmlFor="single-claim" className="font-medium cursor-pointer">
+                                  Single Person
+                                </Label>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Only one person can claim and pay for this entire item
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                              <RadioGroupItem value="group" id="group-claim" className="mt-1" />
+                              <div className="flex-1">
+                                <Label htmlFor="group-claim" className="font-medium cursor-pointer">
+                                  Group Gifting
+                                </Label>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Multiple people can contribute towards this item
+                                </p>
+                              </div>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
                           <Button type="submit" className="w-full shadow-elegant">
                             Add Item
                           </Button>
@@ -592,15 +649,15 @@ const WishlistDetail = () => {
                               </p>
                             )}
                             
-                            {/* Thank You Button (owner only) */}
-                            {isOwner && (
+                            {/* Thank You Button (owner only) - Requires migration to be run first */}
+                            {/* {isOwner && (
                               <ThankYouDialog
                                 claimId={completedClaim.id}
                                 claimerName={completedClaim.is_anonymous ? "Anonymous Giver" : completedClaim.claimer_name}
                                 itemName={item.name}
                                 existingMessage={completedClaim.thank_you_message}
                               />
-                            )}
+                            )} */}
                           </div>
                         )}
                       </div>
@@ -686,8 +743,8 @@ const WishlistDetail = () => {
           )}
         </div>
 
-        {/* Cash Funds Section */}
-        {wishlist && (
+        {/* Cash Funds Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <CashFunds
               wishlistId={wishlist.id}
@@ -695,10 +752,10 @@ const WishlistDetail = () => {
               isOwner={isOwner}
             />
           </div>
-        )}
+        )} */}
 
-        {/* Guest Book Section */}
-        {wishlist && (
+        {/* Guest Book Section - Requires migration to be run first */}
+        {/* {wishlist && (
           <div className="mt-8">
             <GuestBook
               wishlistId={wishlist.id}
@@ -706,12 +763,12 @@ const WishlistDetail = () => {
               currentUserId={session?.user?.id}
             />
           </div>
-        )}
+        )} */}
       </main>
 
       {/* Edit Item Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-h-[90vh]">
+        <DialogContent className="w-full max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
             <DialogDescription>
@@ -738,7 +795,7 @@ const WishlistDetail = () => {
                   rows={3}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_price_min">Min Price</Label>
                   <Input
@@ -846,6 +903,42 @@ const WishlistDetail = () => {
                   Higher priority items appear first (3 = highest, 0 = lowest)
                 </p>
               </div>
+
+              {/* Claim Type Selection */}
+              <div className="space-y-3 pt-2">
+                <Label className="text-base font-semibold">Who can claim this item?</Label>
+                <RadioGroup
+                  value={itemFormData.allow_group_gifting ? "group" : "single"}
+                  onValueChange={(value) => 
+                    setItemFormData({ ...itemFormData, allow_group_gifting: value === "group" })
+                  }
+                  className="space-y-3"
+                >
+                  <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                    <RadioGroupItem value="single" id="edit-single-claim" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="edit-single-claim" className="font-medium cursor-pointer">
+                        Single Person
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Only one person can claim and pay for this entire item
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                    <RadioGroupItem value="group" id="edit-group-claim" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="edit-group-claim" className="font-medium cursor-pointer">
+                        Group Gifting
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Multiple people can contribute towards this item
+                      </p>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
               <Button type="submit" className="w-full shadow-elegant">
                 Update Item
               </Button>

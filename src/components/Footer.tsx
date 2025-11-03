@@ -6,7 +6,7 @@ const Footer = () => {
 
   return (
     <footer className="border-t bg-white/80 backdrop-blur-md mt-20">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto safe-container py-8">
         <div className="text-center text-sm text-muted-foreground">
           <p className="mb-4">© 2025 Sparkl Wishes. Made with ❤️ for celebrations.</p>
           <div className="flex flex-wrap justify-center gap-4">

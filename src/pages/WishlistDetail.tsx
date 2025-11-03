@@ -97,7 +97,7 @@ const WishlistDetail = () => {
       console.log("Fetching items for wishlist:", id);
       const { data, error } = await supabase
         .from("wishlist_items")
-        .select("*, claims(id, claimer_name, is_anonymous, payment_status)")
+        .select("*, claims(id, claimer_name, is_anonymous, payment_status, contribution_amount, is_group_gift)")
         .eq("wishlist_id", id!)
         .order("created_at", { ascending: false });
 
@@ -284,7 +284,7 @@ const WishlistDetail = () => {
 
   // Calculate progress
   const totalItems = items?.length || 0;
-  const claimedItems = items?.filter(item => isItemClaimed(item.claims)).length || 0;
+  const claimedItems = items?.filter(item => isItemClaimed(item.claims, item)).length || 0;
   const progressPercentage = totalItems > 0 ? (claimedItems / totalItems) * 100 : 0;
   
   // Calculate total funding
@@ -293,7 +293,7 @@ const WishlistDetail = () => {
   }, 0) || 0;
   
   const raisedFunding = items?.reduce((sum, item) => {
-    const isClaimed = isItemClaimed(item.claims);
+    const isClaimed = isItemClaimed(item.claims, item);
     return sum + (isClaimed ? (item.price_max || 0) : 0);
   }, 0) || 0;
   
@@ -607,7 +607,7 @@ const WishlistDetail = () => {
           ) : items && items.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map((item) => {
-                const isClaimed = isItemClaimed(item.claims);
+                const isClaimed = isItemClaimed(item.claims, item);
                 const completedClaim = getCompletedClaim(item.claims);
                 return (
                   <Card key={item.id} className="shadow-card hover:shadow-elegant transition-all duration-300">

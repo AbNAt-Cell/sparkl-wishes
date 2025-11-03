@@ -31,25 +31,31 @@ import { useAppSettings } from "@/lib/settings";
 // Funding Progress Component for Group Gifts
 const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; targetAmount: number; currency: string }) => {
   const { data: fundingData } = useQuery({
-    queryKey: ["funding-progress", itemId],
+    queryKey: ["funding-progress", itemId] as const,
     queryFn: async () => {
+      // @ts-expect-error - Supabase query type inference issue
       const { data, error } = await supabase
         .from("claims")
-        .select("contribution_amount, payment_status")
+        .select("contribution_amount, payment_status, is_group_gift")
         .eq("item_id", itemId)
-        .eq("payment_status", "completed");
+        .eq("payment_status", "completed")
+        .eq("is_group_gift", true); // Only count group gift contributions
 
       if (error) throw error;
 
-      const rows = (data as Array<{ contribution_amount?: number }> | null) ?? [];
-      const totalRaised = rows.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
-      const remainingAmount = targetAmount - totalRaised;
-      const percentageFunded = (totalRaised / targetAmount) * 100;
+      const rows = (data || []) as Array<{ contribution_amount?: number | null }>;
+      // Sum only valid contribution amounts (filter out nulls)
+      const totalRaised = rows.reduce((sum: number, claim) => {
+        const amount = claim.contribution_amount;
+        return sum + (amount && amount > 0 ? amount : 0);
+      }, 0);
+      const remainingAmount = Math.max(0, targetAmount - totalRaised);
+      const percentageFunded = targetAmount > 0 ? (totalRaised / targetAmount) * 100 : 0;
 
       return {
         totalRaised,
         remainingAmount,
-        percentageFunded,
+        percentageFunded: Math.min(100, Math.max(0, percentageFunded)), // Clamp between 0-100
         contributorsCount: data?.length || 0,
       };
     },
@@ -318,22 +324,26 @@ export const ClaimItemDialog = ({
 
       // For group gifting, check funding progress and prevent overpayment
       if (allowGroupGifting && itemPrice && itemPrice > 0) {
-        // Get all completed contributions so far
+        // Get all completed GROUP GIFT contributions so far (exclude single gifts)
         const { data: existingClaims, error: checkError } = await supabase
           .from("claims")
-          .select("contribution_amount, payment_status")
+          .select("contribution_amount, payment_status, is_group_gift")
           .eq("item_id", itemId)
-          .eq("payment_status", "completed");
+          .eq("payment_status", "completed")
+          .eq("is_group_gift", true); // Only count group gift contributions
 
         if (checkError) {
           console.error("Error checking existing contributions:", checkError);
         }
 
-        // Calculate total raised so far
-        const rows = (existingClaims as Array<{ contribution_amount?: number }> | null) ?? [];
-        const totalRaised = rows.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
+        // Calculate total raised so far from group gift contributions only
+        const rows = existingClaims ?? [];
+        const totalRaised = rows.reduce((sum: number, claim: any) => {
+          const amount = claim.contribution_amount;
+          return sum + (amount && amount > 0 ? amount : 0);
+        }, 0);
 
-        const remainingAmount = itemPrice - totalRaised;
+        const remainingAmount = Math.max(0, itemPrice - totalRaised);
 
         // Check if item is already fully funded
         if (remainingAmount <= 0) {
@@ -390,17 +400,21 @@ export const ClaimItemDialog = ({
       let paymentAmount = itemPrice || 0;
       
       if (allowGroupGifting && itemPrice && itemPrice > 0) {
-        // For group gifts, calculate remaining amount needed
+        // For group gifts, calculate remaining amount needed (only count group gift contributions)
         const { data: existingClaims } = await supabase
           .from("claims")
-          .select("contribution_amount")
+          .select("contribution_amount, is_group_gift")
           .eq("item_id", itemId)
-          .eq("payment_status", "completed");
+          .eq("payment_status", "completed")
+          .eq("is_group_gift", true); // Only count group gift contributions
 
-        const rows2 = (existingClaims as Array<{ contribution_amount?: number }> | null) ?? [];
-        const totalRaised = rows2.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
+        const rows2 = existingClaims ?? [];
+        const totalRaised = rows2.reduce((sum: number, claim: any) => {
+          const amount = claim.contribution_amount;
+          return sum + (amount && amount > 0 ? amount : 0);
+        }, 0);
 
-        const remainingAmount = itemPrice - totalRaised;
+        const remainingAmount = Math.max(0, itemPrice - totalRaised);
 
         if (claimType === "partial") {
           paymentAmount = parseFloat(contributionAmount);

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { getCurrencySymbol, formatCurrency } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { sendNotification } from "@/integrations/notifications";
 
 interface CashFundsProps {
   wishlistId: string;
@@ -59,6 +60,7 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
   const { data: funds, isLoading } = useQuery({
     queryKey: ["cash-funds", wishlistId],
     queryFn: async () => {
+      // @ts-expect-error - Temporary until Supabase types include cash_funds
       const { data, error } = await supabase
         .from("cash_funds")
         .select("*")
@@ -67,13 +69,14 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      return data as CashFund[];
+      return data as unknown as CashFund[];
     },
   });
 
   // Add fund mutation
   const addFundMutation = useMutation({
     mutationFn: async (data: typeof fundFormData) => {
+      // @ts-expect-error - Temporary until Supabase types include cash_funds
       const { error } = await supabase
         .from("cash_funds")
         .insert({
@@ -122,6 +125,7 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
 
     try {
       // Create contribution record
+      // @ts-expect-error - Temporary until Supabase types include cash_contributions
       const { data: contribution, error: contributionError } = await supabase
         .from("cash_contributions")
         .insert({
@@ -144,7 +148,7 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
         throw new Error("Paystack configuration missing");
       }
 
-      // @ts-ignore - Paystack is loaded via script tag
+      // @ts-expect-error - Paystack is loaded via script tag
       const handler = window.PaystackPop.setup({
         key: paystackKey,
         email: contributeFormData.email || "guest@sparklwishes.com",
@@ -160,6 +164,7 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
           (async () => {
             try {
               // Update contribution status
+              // @ts-expect-error - Temporary until Supabase types include cash_contributions
               const { error: updateError } = await supabase
                 .from("cash_contributions")
                 .update({
@@ -171,6 +176,15 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
               if (updateError) throw updateError;
 
               toast.success("Thank you for your contribution!");
+
+              // Fire-and-forget: send contribution receipt
+              sendNotification({
+                type: "fund.contribution",
+                to: [{ email: contributeFormData.email, name: contributeFormData.name }],
+                subject: `Contribution received for ${selectedFund.fund_name}`,
+                text: `Hi ${contributeFormData.name},\n\nWe received your contribution of ${amount.toFixed(2)} ${currency} to "${selectedFund.fund_name}" (ref ${response.reference}). Thank you!`,
+                html: `<p>Hi ${contributeFormData.name},</p><p>We received your contribution of <strong>${amount.toFixed(2)} ${currency}</strong> to <strong>"${selectedFund.fund_name}"</strong> (ref <code>${response.reference}</code>). Thank you!</p>`,
+              }).catch(() => {});
               setContributeFormData({
                 name: "",
                 email: "",
@@ -222,7 +236,7 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
                 Create Cash Fund
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Cash Fund</DialogTitle>
                 <DialogDescription>
@@ -410,7 +424,7 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
 
       {/* Contribute Dialog */}
       <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Contribute to {selectedFund?.fund_name}</DialogTitle>
             <DialogDescription>

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface NavbarProps {
-  user?: any;
+  user?: { id: string } | null;
 }
 
 const Navbar = ({ user }: NavbarProps) => {
@@ -27,7 +27,7 @@ const Navbar = ({ user }: NavbarProps) => {
 
   return (
     <nav className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="container mx-auto safe-container h-16 flex items-center justify-between">
         <button
           onClick={() => navigate(user ? "/dashboard" : "/")}
           className="flex items-center gap-2 font-semibold text-lg hover:opacity-80 transition-opacity"
@@ -40,7 +40,7 @@ const Navbar = ({ user }: NavbarProps) => {
           </span>
         </button>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button 
             variant="ghost" 
             size="sm"
@@ -63,7 +63,7 @@ const Navbar = ({ user }: NavbarProps) => {
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/wallet")}>
+                <DropdownMenuItem onClick={() => navigate("/wallet") }>
                   <Wallet className="w-4 h-4 mr-2" />
                   Wallet
                 </DropdownMenuItem>

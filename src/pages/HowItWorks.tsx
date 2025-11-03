@@ -240,10 +240,10 @@ const HowItWorks = () => {
           <Badge className="mb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 px-4 py-1">
             Free Forever
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
             How Sparkl Wishes Works
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+          <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
             The modern way to create wishlists, receive gifts, and celebrate life's special moments.
             <br />
             <strong className="text-purple-600">No fees for wishlist creators!</strong>
@@ -266,7 +266,7 @@ const HowItWorks = () => {
         {/* Key Features */}
         <div className="mb-20">
           <h2 className="text-3xl font-bold text-center mb-12">✨ Amazing Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
@@ -305,7 +305,7 @@ const HowItWorks = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {registeredUserSteps.map((step, index) => {
               const Icon = step.icon;
               return (
@@ -347,7 +347,7 @@ const HowItWorks = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {guestUserSteps.map((step, index) => {
               const Icon = step.icon;
               return (
@@ -380,9 +380,9 @@ const HowItWorks = () => {
         </div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-3xl p-12 text-center text-white shadow-2xl">
-          <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+        <div className="bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-3xl p-8 md:p-12 text-center text-white shadow-2xl">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Get Started?</h2>
+          <p className="text-base md:text-xl mb-8 opacity-90 max-w-2xl mx-auto">
             Join thousands celebrating life's special moments with Sparkl Wishes.
             <br />
             <strong>100% free for wishlist creators!</strong>

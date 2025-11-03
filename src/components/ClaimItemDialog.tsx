@@ -25,6 +25,7 @@ import { Info, Shield, CreditCard, CheckCircle2, AlertCircle } from "lucide-reac
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
+import { sendNotification } from "@/integrations/notifications";
 
 // Funding Progress Component for Group Gifts
 const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; targetAmount: number; currency: string }) => {
@@ -39,7 +40,8 @@ const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; t
 
       if (error) throw error;
 
-      const totalRaised = data?.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0) || 0;
+      const rows = (data as Array<{ contribution_amount?: number }> | null) ?? [];
+      const totalRaised = rows.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
       const remainingAmount = targetAmount - totalRaised;
       const percentageFunded = (totalRaised / targetAmount) * 100;
 
@@ -183,13 +185,14 @@ export const ClaimItemDialog = ({
       .eq("id", claimId)
       .single();
 
-    if (fetchError || !claimData || !claimData.contribution_amount) {
+    const contribAmount = (claimData as { contribution_amount?: number } | null)?.contribution_amount;
+    if (fetchError || !claimData || !contribAmount) {
       toast.error("Failed to fetch payment amount");
       setIsLoadingPayment(false);
       return;
     }
 
-    const finalAmount = claimData.contribution_amount;
+    const finalAmount = contribAmount;
 
     // @ts-expect-error - Paystack is loaded via script
     if (!window.PaystackPop) {
@@ -247,6 +250,15 @@ export const ClaimItemDialog = ({
               setClaimId(null);
               onOpenChange(false);
               onClaimSuccess();
+
+              // Fire-and-forget: payment completion receipt to claimer
+              sendNotification({
+                type: "payment.completed",
+                to: [{ email: formData.email, name: formData.name }],
+                subject: `Payment confirmed for "${itemName}"`,
+                text: `Hi ${formData.name || "there"},\n\nWe received your payment for "${itemName}" (ref ${response.reference}). Thank you for your generosity!`,
+                html: `<p>Hi ${formData.name || "there"},</p><p>We received your payment for <strong>"${itemName}"</strong> (ref <code>${response.reference}</code>). Thank you for your generosity!</p>`,
+              }).catch(() => {});
             } catch (error) {
               console.error("❌ Payment processing error:", error);
               const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -316,9 +328,8 @@ export const ClaimItemDialog = ({
         }
 
         // Calculate total raised so far
-        const totalRaised = existingClaims?.reduce((sum, claim) => {
-          return sum + (claim.contribution_amount || 0);
-        }, 0) || 0;
+        const rows = (existingClaims as Array<{ contribution_amount?: number }> | null) ?? [];
+        const totalRaised = rows.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
 
         const remainingAmount = itemPrice - totalRaised;
 
@@ -384,9 +395,8 @@ export const ClaimItemDialog = ({
           .eq("item_id", itemId)
           .eq("payment_status", "completed");
 
-        const totalRaised = existingClaims?.reduce((sum, claim) => {
-          return sum + (claim.contribution_amount || 0);
-        }, 0) || 0;
+        const rows2 = (existingClaims as Array<{ contribution_amount?: number }> | null) ?? [];
+        const totalRaised = rows2.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
 
         const remainingAmount = itemPrice - totalRaised;
 
@@ -422,6 +432,15 @@ export const ClaimItemDialog = ({
 
       setClaimId(claimData.id);
       toast.success("Item claimed successfully!");
+
+      // Fire-and-forget: send claim confirmation to claimer via Brevo
+      sendNotification({
+        type: "claim.created",
+        to: [{ email: formData.email, name: formData.name }],
+        subject: `You claimed "${itemName}" on Sparkl Wishes`,
+        text: `Hi ${formData.name || "there"},\n\nYou successfully claimed "${itemName}". ${itemPrice && itemPrice > 0 ? "Please proceed to payment to finalize your gift." : "No payment is required."}\n\nThank you!`,
+        html: `<p>Hi ${formData.name || "there"},</p><p>You successfully claimed <strong>"${itemName}"</strong>. ${itemPrice && itemPrice > 0 ? "Please proceed to payment to finalize your gift." : "No payment is required."}</p><p>Thank you!</p>`,
+      }).catch(() => {});
 
       // If there's a price, show payment button
       if (itemPrice && itemPrice > 0) {

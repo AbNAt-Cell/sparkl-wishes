@@ -363,10 +363,10 @@ const WishlistDetail = () => {
             </div>
           )}
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-3">
-                  <CardTitle className="text-4xl">{wishlist.title}</CardTitle>
+                  <CardTitle className="text-2xl md:text-4xl leading-tight">{wishlist.title}</CardTitle>
                   <Badge
                     className={`${
                       eventTypeColors[wishlist.event_type as keyof typeof eventTypeColors]
@@ -379,7 +379,7 @@ const WishlistDetail = () => {
                   {wishlist.description || "No description"}
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <ShareButtons
                   shareUrl={`${window.location.origin}/share/${wishlist.share_code}`}
                   title={wishlist.title}
@@ -393,7 +393,7 @@ const WishlistDetail = () => {
                         Add Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-h-[90vh]">
+                    <DialogContent className="w-full max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Add New Item</DialogTitle>
                         <DialogDescription>
@@ -420,7 +420,7 @@ const WishlistDetail = () => {
                             rows={3}
                           />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="price_min">Min Price</Label>
                             <Input
@@ -768,7 +768,7 @@ const WishlistDetail = () => {
 
       {/* Edit Item Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-h-[90vh]">
+        <DialogContent className="w-full max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
             <DialogDescription>
@@ -795,7 +795,7 @@ const WishlistDetail = () => {
                   rows={3}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_price_min">Min Price</Label>
                   <Input

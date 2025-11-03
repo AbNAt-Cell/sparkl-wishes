@@ -41,6 +41,16 @@ const Navbar = ({ user }: NavbarProps) => {
         </button>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          {user && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate("/admin")}
+              className="hidden md:flex items-center gap-2"
+            >
+              Admin
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="sm"

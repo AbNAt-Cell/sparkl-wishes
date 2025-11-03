@@ -9,7 +9,8 @@ type SetUserFlagsPayload = {
 
 type RequestBody =
   | { action: "set_user_flags"; payload: SetUserFlagsPayload }
-  | { action: "export_users_csv" };
+  | { action: "export_users_csv" }
+  | { action: "update_setting"; payload: { key: string; value: unknown } };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,6 +77,16 @@ serve(async (req) => {
           "Content-Disposition": "attachment; filename=users.csv",
         },
       });
+    }
+
+    if (body.action === "update_setting") {
+      const { key, value } = body.payload;
+      const { error } = await adminClient
+        .from("app_settings")
+        .upsert({ key, value, updated_at: new Date().toISOString() })
+        .eq("key", key);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: corsHeaders });

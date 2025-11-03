@@ -2,7 +2,7 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Shield, Users, LayoutDashboard } from "lucide-react";
+import { Shield, Users, LayoutDashboard, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminLayout: React.FC = () => {
@@ -40,6 +40,14 @@ const AdminLayout: React.FC = () => {
             }
           >
             <span className="inline-flex items-center gap-2"><Users className="w-4 h-4" /> Users</span>
+          </NavLink>
+          <NavLink
+            to="/admin/settings"
+            className={({ isActive }) =>
+              `px-3 py-1.5 rounded-md border ${isActive ? "bg-primary text-primary-foreground" : "bg-card"}`
+            }
+          >
+            <span className="inline-flex items-center gap-2"><Settings className="w-4 h-4" /> Settings</span>
           </NavLink>
         </div>
         <Outlet />

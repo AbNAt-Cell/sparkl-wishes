@@ -26,6 +26,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { sendNotification } from "@/integrations/notifications";
+import { useAppSettings } from "@/lib/settings";
 
 // Funding Progress Component for Group Gifts
 const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; targetAmount: number; currency: string }) => {
@@ -127,6 +128,7 @@ export const ClaimItemDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
+  const { data: appSettings } = useAppSettings();
 
   // Get Paystack key from environment
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
@@ -442,8 +444,8 @@ export const ClaimItemDialog = ({
         html: `<p>Hi ${formData.name || "there"},</p><p>You successfully claimed <strong>"${itemName}"</strong>. ${itemPrice && itemPrice > 0 ? "Please proceed to payment to finalize your gift." : "No payment is required."}</p><p>Thank you!</p>`,
       }).catch(() => {});
 
-      // If there's a price, show payment button
-      if (itemPrice && itemPrice > 0) {
+      // If there's a price, show payment button based on settings
+      if (itemPrice && itemPrice > 0 && (appSettings?.payments.paystackEnabled ?? true)) {
         setShowPaymentButton(true);
       } else {
         setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
@@ -760,16 +762,24 @@ export const ClaimItemDialog = ({
                 <div className="flex items-start gap-2">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">
-                      Secure Payment via Paystack
+                      {(appSettings?.payments.paystackEnabled ?? true) ? "Secure Payment via Paystack" : "Payments temporarily unavailable"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Your payment will be processed securely. We accept:
+                      {(appSettings?.payments.paystackEnabled ?? true) ? "Your payment will be processed securely. We accept:" : "The wishlist owner has disabled payments at the moment."}
                     </p>
-                    <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                      <span className="px-2 py-1 bg-background rounded">💳 Cards</span>
-                      <span className="px-2 py-1 bg-background rounded">🏦 Bank Transfer</span>
-                      <span className="px-2 py-1 bg-background rounded">📱 Mobile Money</span>
-                    </div>
+                    {(appSettings?.payments.paystackEnabled ?? true) && (
+                      <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                        {appSettings?.payments.allowedMethods?.includes("card") && (
+                          <span className="px-2 py-1 bg-background rounded">💳 Cards</span>
+                        )}
+                        {appSettings?.payments.allowedMethods?.includes("bank_transfer") && (
+                          <span className="px-2 py-1 bg-background rounded">🏦 Bank Transfer</span>
+                        )}
+                        {appSettings?.payments.allowedMethods?.includes("mobile_money") && (
+                          <span className="px-2 py-1 bg-background rounded">📱 Mobile Money</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </AlertDescription>
@@ -783,7 +793,7 @@ export const ClaimItemDialog = ({
                 <Button 
                   type="submit" 
                   className="w-full h-11 text-base font-medium" 
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (itemPrice && itemPrice > 0 && !(appSettings?.payments.paystackEnabled ?? true))}
                 >
                   {isSubmitting ? (
                     <>
@@ -795,7 +805,7 @@ export const ClaimItemDialog = ({
                       {itemPrice && itemPrice > 0 ? (
                         <>
                           <CreditCard className="w-4 h-4 mr-2" />
-                          Continue to Payment
+                          {(appSettings?.payments.paystackEnabled ?? true) ? "Continue to Payment" : "Payments Disabled"}
                         </>
                       ) : (
                         <>

@@ -67,7 +67,7 @@ const SharedWishlist = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wishlist_items")
-        .select("*, claims(id, claimer_name, is_anonymous, payment_status)")
+        .select("*, claims(id, claimer_name, is_anonymous, payment_status, contribution_amount, is_group_gift)")
         .eq("wishlist_id", wishlist!.id)
         .order("priority", { ascending: false })
         .order("created_at", { ascending: false });
@@ -121,7 +121,7 @@ const SharedWishlist = () => {
 
   // Calculate progress
   const totalItems = items?.length || 0;
-  const claimedItems = items?.filter(item => isItemClaimed(item.claims)).length || 0;
+  const claimedItems = items?.filter(item => isItemClaimed(item.claims, item)).length || 0;
   const progressPercentage = totalItems > 0 ? (claimedItems / totalItems) * 100 : 0;
 
   return (
@@ -210,14 +210,20 @@ const SharedWishlist = () => {
               )}
             </div>
 
-            {/* Progress Indicator */}
+            {/* Progress Indicator - compact */}
             {totalItems > 0 && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-muted-foreground">{claimedItems}/{totalItems} claimed</span>
-                  <span className="text-muted-foreground">{Math.round(progressPercentage)}%</span>
+              <div className="mt-2">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-[72px] text-xs font-medium text-muted-foreground">
+                    {claimedItems}/{totalItems}
+                  </div>
+                  <div className="flex-1 max-w-xs">
+                    <Progress value={progressPercentage} className="h-1.5 rounded-full" />
+                  </div>
+                  <div className="w-10 text-right text-xs text-muted-foreground">
+                    {Math.round(progressPercentage)}%
+                  </div>
                 </div>
-                <Progress value={progressPercentage} className="h-1.5" />
               </div>
             )}
           </CardHeader>
@@ -255,7 +261,7 @@ const SharedWishlist = () => {
           ) : items && items.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {items.map((item) => {
-                const isClaimed = isItemClaimed(item.claims);
+                const isClaimed = isItemClaimed(item.claims, item);
                 const claimInfo = getCompletedClaim(item.claims);
                 const priorityLabels: Record<string, { label: string; color: string }> = {
                   "3": { label: "High Priority", color: "bg-red-100 text-red-700 border-red-200" },

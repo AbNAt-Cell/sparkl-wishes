@@ -26,29 +26,36 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { sendNotification } from "@/integrations/notifications";
+import { useAppSettings } from "@/lib/settings";
 
 // Funding Progress Component for Group Gifts
 const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; targetAmount: number; currency: string }) => {
   const { data: fundingData } = useQuery({
-    queryKey: ["funding-progress", itemId],
+    queryKey: ["funding-progress", itemId] as const,
     queryFn: async () => {
+      // @ts-expect-error - Supabase query type inference issue
       const { data, error } = await supabase
         .from("claims")
-        .select("contribution_amount, payment_status")
+        .select("contribution_amount, payment_status, is_group_gift")
         .eq("item_id", itemId)
-        .eq("payment_status", "completed");
+        .eq("payment_status", "completed")
+        .eq("is_group_gift", true); // Only count group gift contributions
 
       if (error) throw error;
 
-      const rows = (data as Array<{ contribution_amount?: number }> | null) ?? [];
-      const totalRaised = rows.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
-      const remainingAmount = targetAmount - totalRaised;
-      const percentageFunded = (totalRaised / targetAmount) * 100;
+      const rows = (data || []) as Array<{ contribution_amount?: number | null }>;
+      // Sum only valid contribution amounts (filter out nulls)
+      const totalRaised = rows.reduce((sum: number, claim) => {
+        const amount = claim.contribution_amount;
+        return sum + (amount && amount > 0 ? amount : 0);
+      }, 0);
+      const remainingAmount = Math.max(0, targetAmount - totalRaised);
+      const percentageFunded = targetAmount > 0 ? (totalRaised / targetAmount) * 100 : 0;
 
       return {
         totalRaised,
         remainingAmount,
-        percentageFunded,
+        percentageFunded: Math.min(100, Math.max(0, percentageFunded)), // Clamp between 0-100
         contributorsCount: data?.length || 0,
       };
     },
@@ -127,6 +134,7 @@ export const ClaimItemDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
+  const { data: appSettings } = useAppSettings();
 
   // Get Paystack key from environment
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
@@ -316,22 +324,26 @@ export const ClaimItemDialog = ({
 
       // For group gifting, check funding progress and prevent overpayment
       if (allowGroupGifting && itemPrice && itemPrice > 0) {
-        // Get all completed contributions so far
+        // Get all completed GROUP GIFT contributions so far (exclude single gifts)
         const { data: existingClaims, error: checkError } = await supabase
           .from("claims")
-          .select("contribution_amount, payment_status")
+          .select("contribution_amount, payment_status, is_group_gift")
           .eq("item_id", itemId)
-          .eq("payment_status", "completed");
+          .eq("payment_status", "completed")
+          .eq("is_group_gift", true); // Only count group gift contributions
 
         if (checkError) {
           console.error("Error checking existing contributions:", checkError);
         }
 
-        // Calculate total raised so far
-        const rows = (existingClaims as Array<{ contribution_amount?: number }> | null) ?? [];
-        const totalRaised = rows.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
+        // Calculate total raised so far from group gift contributions only
+        const rows = existingClaims ?? [];
+        const totalRaised = rows.reduce((sum: number, claim: any) => {
+          const amount = claim.contribution_amount;
+          return sum + (amount && amount > 0 ? amount : 0);
+        }, 0);
 
-        const remainingAmount = itemPrice - totalRaised;
+        const remainingAmount = Math.max(0, itemPrice - totalRaised);
 
         // Check if item is already fully funded
         if (remainingAmount <= 0) {
@@ -388,17 +400,21 @@ export const ClaimItemDialog = ({
       let paymentAmount = itemPrice || 0;
       
       if (allowGroupGifting && itemPrice && itemPrice > 0) {
-        // For group gifts, calculate remaining amount needed
+        // For group gifts, calculate remaining amount needed (only count group gift contributions)
         const { data: existingClaims } = await supabase
           .from("claims")
-          .select("contribution_amount")
+          .select("contribution_amount, is_group_gift")
           .eq("item_id", itemId)
-          .eq("payment_status", "completed");
+          .eq("payment_status", "completed")
+          .eq("is_group_gift", true); // Only count group gift contributions
 
-        const rows2 = (existingClaims as Array<{ contribution_amount?: number }> | null) ?? [];
-        const totalRaised = rows2.reduce((sum, claim) => sum + (claim.contribution_amount || 0), 0);
+        const rows2 = existingClaims ?? [];
+        const totalRaised = rows2.reduce((sum: number, claim: any) => {
+          const amount = claim.contribution_amount;
+          return sum + (amount && amount > 0 ? amount : 0);
+        }, 0);
 
-        const remainingAmount = itemPrice - totalRaised;
+        const remainingAmount = Math.max(0, itemPrice - totalRaised);
 
         if (claimType === "partial") {
           paymentAmount = parseFloat(contributionAmount);
@@ -442,8 +458,8 @@ export const ClaimItemDialog = ({
         html: `<p>Hi ${formData.name || "there"},</p><p>You successfully claimed <strong>"${itemName}"</strong>. ${itemPrice && itemPrice > 0 ? "Please proceed to payment to finalize your gift." : "No payment is required."}</p><p>Thank you!</p>`,
       }).catch(() => {});
 
-      // If there's a price, show payment button
-      if (itemPrice && itemPrice > 0) {
+      // If there's a price, show payment button based on settings
+      if (itemPrice && itemPrice > 0 && (appSettings?.payments.paystackEnabled ?? true)) {
         setShowPaymentButton(true);
       } else {
         setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
@@ -760,16 +776,24 @@ export const ClaimItemDialog = ({
                 <div className="flex items-start gap-2">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">
-                      Secure Payment via Paystack
+                      {(appSettings?.payments.paystackEnabled ?? true) ? "Secure Payment via Paystack" : "Payments temporarily unavailable"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Your payment will be processed securely. We accept:
+                      {(appSettings?.payments.paystackEnabled ?? true) ? "Your payment will be processed securely. We accept:" : "The wishlist owner has disabled payments at the moment."}
                     </p>
-                    <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                      <span className="px-2 py-1 bg-background rounded">💳 Cards</span>
-                      <span className="px-2 py-1 bg-background rounded">🏦 Bank Transfer</span>
-                      <span className="px-2 py-1 bg-background rounded">📱 Mobile Money</span>
-                    </div>
+                    {(appSettings?.payments.paystackEnabled ?? true) && (
+                      <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                        {appSettings?.payments.allowedMethods?.includes("card") && (
+                          <span className="px-2 py-1 bg-background rounded">💳 Cards</span>
+                        )}
+                        {appSettings?.payments.allowedMethods?.includes("bank_transfer") && (
+                          <span className="px-2 py-1 bg-background rounded">🏦 Bank Transfer</span>
+                        )}
+                        {appSettings?.payments.allowedMethods?.includes("mobile_money") && (
+                          <span className="px-2 py-1 bg-background rounded">📱 Mobile Money</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </AlertDescription>
@@ -783,7 +807,7 @@ export const ClaimItemDialog = ({
                 <Button 
                   type="submit" 
                   className="w-full h-11 text-base font-medium" 
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (itemPrice && itemPrice > 0 && !(appSettings?.payments.paystackEnabled ?? true))}
                 >
                   {isSubmitting ? (
                     <>
@@ -795,7 +819,7 @@ export const ClaimItemDialog = ({
                       {itemPrice && itemPrice > 0 ? (
                         <>
                           <CreditCard className="w-4 h-4 mr-2" />
-                          Continue to Payment
+                          {(appSettings?.payments.paystackEnabled ?? true) ? "Continue to Payment" : "Payments Disabled"}
                         </>
                       ) : (
                         <>

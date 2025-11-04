@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/Layout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
+import AdminSettings from "./pages/admin/Settings";
 import AdminGuard from "@/components/AdminGuard";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
           >
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

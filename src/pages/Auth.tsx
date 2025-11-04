@@ -20,7 +20,13 @@ const Auth = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/dashboard");
+        // Check if user is admin and redirect accordingly
+        const role = session.user?.app_metadata?.role;
+        if (role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }
     };
     checkSession();
@@ -52,7 +58,7 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -61,8 +67,14 @@ const Auth = () => {
 
     if (error) {
       toast.error(error.message);
-    } else {
-      navigate("/dashboard");
+    } else if (data.session) {
+      // Check if user is admin and redirect accordingly
+      const role = data.session.user?.app_metadata?.role;
+      if (role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 

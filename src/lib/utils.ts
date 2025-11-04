@@ -30,6 +30,8 @@ export interface ClaimData {
   claimer_name: string | null;
   is_anonymous: boolean | null;
   payment_status: string | null;
+  contribution_amount?: number | null;
+  is_group_gift?: boolean | null;
 }
 
 /**
@@ -42,14 +44,35 @@ export function normalizeClaims(claims: any): ClaimData[] {
 
 /**
  * Checks if an item is truly claimed (payment completed or not required)
+ * For single gifts: checks if any claim is completed
+ * For group gifts: checks if total contributions >= price_max
  */
-export function isItemClaimed(claims: any): boolean {
+export function isItemClaimed(claims: any, item?: { price_max?: number | null; allow_group_gifting?: boolean }): boolean {
   const claimsList = normalizeClaims(claims);
-  return claimsList.some(
-    (claim) => 
-      claim.payment_status === 'completed' || 
-      claim.payment_status === 'not_required'
-  );
+  
+  if (!claimsList || claimsList.length === 0) {
+    return false;
+  }
+  
+  // Check if this is a group gift item
+  const hasGroupGiftClaims = claimsList.some(c => c.is_group_gift === true);
+  const isGroupGiftItem = item?.allow_group_gifting === true || hasGroupGiftClaims;
+  
+  if (isGroupGiftItem && item?.price_max && item.price_max > 0) {
+    // For group gifts: item is claimed when total contributions >= price_max
+    const totalContributions = claimsList
+      .filter(c => c.payment_status === 'completed' && c.contribution_amount)
+      .reduce((sum, c) => sum + (c.contribution_amount || 0), 0);
+    
+    return totalContributions >= item.price_max;
+  } else {
+    // For single gifts: item is claimed if any claim is completed or not_required
+    return claimsList.some(
+      (claim) => 
+        claim.payment_status === 'completed' || 
+        claim.payment_status === 'not_required'
+    );
+  }
 }
 
 /**

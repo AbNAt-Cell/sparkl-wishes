@@ -14,15 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      cash_contributions: {
+        Row: {
+          amount: number
+          contributor_email: string | null
+          contributor_name: string
+          created_at: string
+          fund_id: string
+          id: string
+          is_anonymous: boolean | null
+          message: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          contributor_email?: string | null
+          contributor_name: string
+          created_at?: string
+          fund_id: string
+          id?: string
+          is_anonymous?: boolean | null
+          message?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          contributor_email?: string | null
+          contributor_name?: string
+          created_at?: string
+          fund_id?: string
+          id?: string
+          is_anonymous?: boolean | null
+          message?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_contributions_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "cash_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_funds: {
+        Row: {
+          created_at: string
+          current_amount: number | null
+          display_order: number | null
+          fund_description: string | null
+          fund_name: string
+          id: string
+          is_active: boolean | null
+          target_amount: number | null
+          updated_at: string
+          wishlist_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_amount?: number | null
+          display_order?: number | null
+          fund_description?: string | null
+          fund_name: string
+          id?: string
+          is_active?: boolean | null
+          target_amount?: number | null
+          updated_at?: string
+          wishlist_id: string
+        }
+        Update: {
+          created_at?: string
+          current_amount?: number | null
+          display_order?: number | null
+          fund_description?: string | null
+          fund_name?: string
+          id?: string
+          is_active?: boolean | null
+          target_amount?: number | null
+          updated_at?: string
+          wishlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_funds_wishlist_id_fkey"
+            columns: ["wishlist_id"]
+            isOneToOne: false
+            referencedRelation: "wishlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claims: {
         Row: {
           claimer_email: string | null
           claimer_name: string | null
           claimer_phone: string | null
+          contribution_amount: number | null
           created_at: string
           expires_at: string | null
           id: string
           is_anonymous: boolean | null
+          is_group_gift: boolean | null
           item_id: string
           notes: string | null
           payment_method: string | null
@@ -33,10 +150,12 @@ export type Database = {
           claimer_email?: string | null
           claimer_name?: string | null
           claimer_phone?: string | null
+          contribution_amount?: number | null
           created_at?: string
           expires_at?: string | null
           id?: string
           is_anonymous?: boolean | null
+          is_group_gift?: boolean | null
           item_id: string
           notes?: string | null
           payment_method?: string | null
@@ -47,10 +166,12 @@ export type Database = {
           claimer_email?: string | null
           claimer_name?: string | null
           claimer_phone?: string | null
+          contribution_amount?: number | null
           created_at?: string
           expires_at?: string | null
           id?: string
           is_anonymous?: boolean | null
+          is_group_gift?: boolean | null
           item_id?: string
           notes?: string | null
           payment_method?: string | null
@@ -61,7 +182,14 @@ export type Database = {
           {
             foreignKeyName: "claims_item_id_fkey"
             columns: ["item_id"]
-            isOneToOne: true
+            isOneToOne: false
+            referencedRelation: "group_gift_progress"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "claims_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "wishlist_items"
             referencedColumns: ["id"]
           },
@@ -74,6 +202,8 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          is_admin: boolean | null
+          is_banned: boolean | null
           updated_at: string
         }
         Insert: {
@@ -82,6 +212,8 @@ export type Database = {
           created_at?: string
           full_name: string
           id: string
+          is_admin?: boolean | null
+          is_banned?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -90,6 +222,8 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          is_admin?: boolean | null
+          is_banned?: boolean | null
           updated_at?: string
         }
         Relationships: []
@@ -172,8 +306,67 @@ export type Database = {
           },
         ]
       }
+      wishlist_comments: {
+        Row: {
+          comment_text: string
+          commenter_email: string | null
+          commenter_name: string
+          created_at: string
+          id: string
+          is_anonymous: boolean | null
+          item_id: string | null
+          updated_at: string
+          wishlist_id: string
+        }
+        Insert: {
+          comment_text: string
+          commenter_email?: string | null
+          commenter_name: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean | null
+          item_id?: string | null
+          updated_at?: string
+          wishlist_id: string
+        }
+        Update: {
+          comment_text?: string
+          commenter_email?: string | null
+          commenter_name?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean | null
+          item_id?: string | null
+          updated_at?: string
+          wishlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_comments_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "group_gift_progress"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "wishlist_comments_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "wishlist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wishlist_comments_wishlist_id_fkey"
+            columns: ["wishlist_id"]
+            isOneToOne: false
+            referencedRelation: "wishlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wishlist_items: {
         Row: {
+          allow_group_gifting: boolean
           category: string | null
           created_at: string
           description: string | null
@@ -188,6 +381,7 @@ export type Database = {
           wishlist_id: string
         }
         Insert: {
+          allow_group_gifting?: boolean
           category?: string | null
           created_at?: string
           description?: string | null
@@ -202,6 +396,7 @@ export type Database = {
           wishlist_id: string
         }
         Update: {
+          allow_group_gifting?: boolean
           category?: string | null
           created_at?: string
           description?: string | null
@@ -280,13 +475,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      group_gift_progress: {
+        Row: {
+          contributor_count: number | null
+          is_fully_funded: boolean | null
+          item_id: string | null
+          item_name: string | null
+          progress_percentage: number | null
+          raised_amount: number | null
+          target_amount: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      expire_unpaid_claims: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      expire_unpaid_claims: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

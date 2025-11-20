@@ -19,6 +19,9 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/Layout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
+import AdminWishlists from "./pages/admin/Wishlists";
+import AdminItems from "./pages/admin/Items";
+import AdminClaims from "./pages/admin/Claims";
 import AdminSettings from "./pages/admin/Settings";
 import AdminGuard from "@/components/AdminGuard";
 
@@ -52,6 +55,9 @@ const App = () => (
           >
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="wishlists" element={<AdminWishlists />} />
+            <Route path="items" element={<AdminItems />} />
+            <Route path="claims" element={<AdminClaims />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

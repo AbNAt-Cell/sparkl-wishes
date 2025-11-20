@@ -3,16 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const Metric: React.FC<{ title: string; value: string | number }> = ({ title, value }) => (
-  <Card className="shadow-card">
-    <CardHeader>
-      <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-3xl font-bold">{value}</div>
-    </CardContent>
-  </Card>
+const Metric: React.FC<{ title: string; value: string | number; href: string }> = ({ title, value, href }) => (
+  <Link to={href}>
+    <Card className="shadow-card hover:shadow-lg transition-shadow cursor-pointer">
+      <CardHeader>
+        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
+  </Link>
 );
 
 const AdminDashboard: React.FC = () => {
@@ -45,10 +48,10 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Metric title="Users" value={data?.users ?? 0} />
-      <Metric title="Wishlists" value={data?.wishlists ?? 0} />
-      <Metric title="Items" value={data?.items ?? 0} />
-      <Metric title="Claims" value={data?.claims ?? 0} />
+      <Metric title="Users" value={data?.users ?? 0} href="/admin/users" />
+      <Metric title="Wishlists" value={data?.wishlists ?? 0} href="/admin/wishlists" />
+      <Metric title="Items" value={data?.items ?? 0} href="/admin/items" />
+      <Metric title="Claims" value={data?.claims ?? 0} href="/admin/claims" />
     </div>
   );
 };

@@ -145,6 +145,8 @@ export type Database = {
           payment_method: string | null
           payment_reference: string | null
           payment_status: string | null
+          thank_you_message: string | null
+          thank_you_sent_at: string | null
         }
         Insert: {
           claimer_email?: string | null
@@ -161,6 +163,8 @@ export type Database = {
           payment_method?: string | null
           payment_reference?: string | null
           payment_status?: string | null
+          thank_you_message?: string | null
+          thank_you_sent_at?: string | null
         }
         Update: {
           claimer_email?: string | null
@@ -177,6 +181,8 @@ export type Database = {
           payment_method?: string | null
           payment_reference?: string | null
           payment_status?: string | null
+          thank_you_message?: string | null
+          thank_you_sent_at?: string | null
         }
         Relationships: [
           {

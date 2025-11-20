@@ -33,7 +33,6 @@ const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; t
   const { data: fundingData } = useQuery({
     queryKey: ["funding-progress", itemId] as const,
     queryFn: async () => {
-      // @ts-expect-error - Supabase query type inference issue
       const { data, error } = await supabase
         .from("claims")
         .select("contribution_amount, payment_status, is_group_gift")

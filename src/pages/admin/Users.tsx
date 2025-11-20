@@ -1,13 +1,27 @@
 import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, ShieldCheck, ShieldX, Upload } from "lucide-react";
+import { Loader2, Search, ShieldCheck, ShieldX, Upload, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminUsers: React.FC = () => {
   const [q, setQ] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ userId: string; action: string; currentValue: boolean } | null>(null);
+  const queryClient = useQueryClient();
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
@@ -20,12 +34,73 @@ const AdminUsers: React.FC = () => {
     },
   });
 
+  const userActionMutation = useMutation({
+    mutationFn: async ({ userId, isAdmin, isBanned }: { userId: string; isAdmin?: boolean; isBanned?: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "set_user_flags", payload: { userId, isAdmin, isBanned } },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      const action = variables.isAdmin !== undefined 
+        ? (variables.isAdmin ? "promoted" : "demoted")
+        : (variables.isBanned ? "banned" : "unbanned");
+      toast.success(`User ${action} successfully`);
+    },
+    onError: (error) => {
+      toast.error(`Failed to update user: ${(error as Error).message}`);
+    },
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "export_users_csv" },
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: (data) => {
+      const blob = new Blob([data], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "users.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Users exported successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to export: ${(error as Error).message}`);
+    },
+  });
+
   const filtered = useMemo(() => {
     const list = data ?? [];
     const term = q.trim().toLowerCase();
     if (!term) return list;
     return list.filter(u => (u.full_name ?? "").toLowerCase().includes(term) || u.id.startsWith(term));
   }, [data, q]);
+
+  const handleAction = (userId: string, action: "promote" | "demote" | "ban" | "unban", currentValue: boolean) => {
+    setConfirmAction({ userId, action, currentValue });
+  };
+
+  const confirmUserAction = () => {
+    if (!confirmAction) return;
+    
+    const { userId, action } = confirmAction;
+    
+    if (action === "promote" || action === "demote") {
+      userActionMutation.mutate({ userId, isAdmin: action === "promote" });
+    } else {
+      userActionMutation.mutate({ userId, isBanned: action === "ban" });
+    }
+    
+    setConfirmAction(null);
+  };
 
   return (
     <Card className="shadow-card">
@@ -36,21 +111,15 @@ const AdminUsers: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={async () => {
-                const { data, error } = await supabase.functions.invoke("admin-actions", {
-                  body: { action: "export_users_csv" },
-                });
-                if (error) return;
-                const blob = new Blob([data as unknown as string], { type: "text/csv" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "users.csv";
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
+              onClick={() => exportMutation.mutate()}
+              disabled={exportMutation.isPending}
             >
-              <Upload className="w-4 h-4 mr-2" /> Export CSV
+              {exportMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4 mr-2" />
+              )}
+              Export CSV
             </Button>
             <span className="text-xs text-muted-foreground">{filtered.length} result(s)</span>
           </div>
@@ -91,28 +160,19 @@ const AdminUsers: React.FC = () => {
                   <Button
                     variant={user.is_admin ? "outline" : "default"}
                     size="sm"
-                    onClick={async () => {
-                      await supabase.functions.invoke("admin-actions", {
-                        body: { action: "set_user_flags", payload: { userId: user.id, isAdmin: !user.is_admin } },
-                      });
-                      await supabase.removeAllChannels();
-                      location.reload();
-                    }}
+                    onClick={() => handleAction(user.id, user.is_admin ? "demote" : "promote", user.is_admin || false)}
+                    disabled={userActionMutation.isPending}
                   >
                     {user.is_admin ? <ShieldX className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
                     {user.is_admin ? "Demote" : "Promote"}
                   </Button>
                   <Button
-                    variant={user.is_banned ? "destructive" : "outline"}
+                    variant={user.is_banned ? "default" : "outline"}
                     size="sm"
-                    onClick={async () => {
-                      await supabase.functions.invoke("admin-actions", {
-                        body: { action: "set_user_flags", payload: { userId: user.id, isBanned: !user.is_banned } },
-                      });
-                      await supabase.removeAllChannels();
-                      location.reload();
-                    }}
+                    onClick={() => handleAction(user.id, user.is_banned ? "unban" : "ban", user.is_banned || false)}
+                    disabled={userActionMutation.isPending}
                   >
+                    <Ban className="w-4 h-4 mr-2" />
                     {user.is_banned ? "Unban" : "Ban"}
                   </Button>
                 </div>
@@ -121,6 +181,26 @@ const AdminUsers: React.FC = () => {
           </div>
         )}
       </CardContent>
+
+      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.action === "ban" && "Are you sure you want to ban this user? They will no longer be able to access the platform."}
+              {confirmAction?.action === "unban" && "Are you sure you want to unban this user? They will regain access to the platform."}
+              {confirmAction?.action === "promote" && "Are you sure you want to promote this user to admin? They will have full administrative privileges."}
+              {confirmAction?.action === "demote" && "Are you sure you want to remove admin privileges from this user?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmUserAction}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

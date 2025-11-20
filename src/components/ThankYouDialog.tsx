@@ -39,7 +39,7 @@ export const ThankYouDialog: React.FC<ThankYouDialogProps> = ({
         .update({
           thank_you_message: thankYouMessage,
           thank_you_sent_at: new Date().toISOString(),
-        })
+        } as any)
         .eq("id", claimId);
 
       if (error) throw error;

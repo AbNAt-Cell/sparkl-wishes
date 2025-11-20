@@ -23,6 +23,20 @@ const defaultSettings: AppSettings = {
   },
 };
 
+// Helper to normalize database response
+const normalizePaymentSettings = (dbValue: any): PaymentsSettings => {
+  // Handle both 'enabled' (from DB) and 'paystackEnabled' (from code)
+  const enabled = dbValue?.enabled ?? dbValue?.paystackEnabled ?? true;
+  
+  return {
+    paystackEnabled: enabled,
+    allowedMethods: dbValue?.allowedMethods ?? defaultSettings.payments.allowedMethods,
+    platformFeePercent: dbValue?.platformFeePercent ?? defaultSettings.payments.platformFeePercent,
+    platformFeeMin: dbValue?.platformFeeMin ?? defaultSettings.payments.platformFeeMin,
+    platformFeeMax: dbValue?.platformFeeMax ?? defaultSettings.payments.platformFeeMax,
+  };
+};
+
 export function useAppSettings() {
   return useQuery({
     queryKey: ["app-settings"],
@@ -33,8 +47,10 @@ export function useAppSettings() {
         .in("key", ["payments"]); // extendable later
       if (error) throw error;
       const map = new Map<string, any>((data ?? []).map((r: any) => [r.key, r.value]));
+      const dbPayments = map.get("payments");
+      
       return {
-        payments: { ...defaultSettings.payments, ...(map.get("payments") ?? {}) },
+        payments: normalizePaymentSettings(dbPayments),
       };
     },
     staleTime: 60_000,

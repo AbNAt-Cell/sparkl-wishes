@@ -298,11 +298,22 @@ export const ClaimItemDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🚀 Starting claim submission...");
     setIsSubmitting(true);
 
     try {
+      // Validate required fields
+      if (!formData.name || !formData.email) {
+        toast.error("Please fill in your name and email");
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("✅ Form data validated:", { name: formData.name, email: formData.email });
+
       // Check if item is already claimed (only for single-claim items)
       if (!allowGroupGifting) {
+        console.log("🔍 Checking for existing claims (single-claim item)...");
         const { data: existingClaims, error: checkError } = await supabase
           .from("claims")
           .select("id, payment_status")
@@ -310,15 +321,18 @@ export const ClaimItemDialog = ({
           .in("payment_status", ["pending", "completed"]);
 
         if (checkError) {
-          console.error("Error checking existing claims:", checkError);
+          console.error("❌ Error checking existing claims:", checkError);
+          throw new Error("Failed to verify item availability");
         }
 
         if (existingClaims && existingClaims.length > 0) {
+          console.log("⚠️ Item already claimed");
           toast.error("This item has already been claimed by someone else!");
           setIsSubmitting(false);
           onOpenChange(false);
           return;
         }
+        console.log("✅ No existing claims found");
       }
 
       // For group gifting, check funding progress and prevent overpayment
@@ -424,6 +438,13 @@ export const ClaimItemDialog = ({
       }
 
       // First, create the claim
+      console.log("💾 Creating claim in database...", {
+        itemId,
+        paymentAmount,
+        allowGroupGifting,
+        claimType,
+      });
+
       const { data: claimData, error: claimError } = await supabase
         .from("claims")
         .insert({
@@ -443,8 +464,12 @@ export const ClaimItemDialog = ({
         .select()
         .single();
 
-      if (claimError) throw claimError;
+      if (claimError) {
+        console.error("❌ Database error creating claim:", claimError);
+        throw claimError;
+      }
 
+      console.log("✅ Claim created successfully:", claimData.id);
       setClaimId(claimData.id);
       toast.success("Item claimed successfully!");
 
@@ -458,17 +483,24 @@ export const ClaimItemDialog = ({
       }).catch(() => {});
 
       // If there's a price, show payment button based on settings
-      if (itemPrice && itemPrice > 0 && (appSettings?.payments.paystackEnabled ?? true)) {
+      const paymentEnabled = appSettings?.payments?.paystackEnabled ?? true;
+      console.log("💳 Payment settings:", { itemPrice, paymentEnabled, appSettings: appSettings?.payments });
+
+      if (itemPrice && itemPrice > 0 && paymentEnabled) {
+        console.log("✅ Showing payment button");
         setShowPaymentButton(true);
       } else {
+        console.log("✅ No payment required, completing claim");
         setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: false });
         onOpenChange(false);
         onClaimSuccess();
       }
     } catch (error) {
+      console.error("❌ Claim submission error:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to claim item";
       toast.error(errorMessage);
     } finally {
+      console.log("🏁 Claim submission finished");
       setIsSubmitting(false);
     }
   };

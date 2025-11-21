@@ -500,7 +500,7 @@ export const ClaimItemDialog = ({
           is_anonymous: formData.isAnonymous,
           payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
           expires_at: itemPrice && itemPrice > 0 
-            ? new Date(Date.now() + 10 * 60 * 1000).toISOString() 
+            ? new Date(Date.now() + 20 * 60 * 1000).toISOString() 
             : null,
           is_group_gift: allowGroupGifting,
           contribution_amount: paymentAmount,

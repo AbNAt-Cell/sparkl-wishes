@@ -135,6 +135,50 @@ export const ClaimItemDialog = ({
   const [showPaymentButton, setShowPaymentButton] = useState(false);
   const { data: appSettings } = useAppSettings();
 
+  // Query to get remaining amount for group gifts
+  const { data: groupGiftData } = useQuery({
+    queryKey: ["group-gift-remaining", itemId],
+    queryFn: async () => {
+      if (!allowGroupGifting || !itemPrice) return null;
+      
+      const { data, error } = await supabase
+        .from("claims")
+        .select("contribution_amount, payment_status, is_group_gift")
+        .eq("item_id", itemId)
+        .eq("payment_status", "completed")
+        .eq("is_group_gift", true);
+
+      if (error) throw error;
+
+      const totalRaised = (data || []).reduce((sum: number, claim: any) => {
+        const amount = claim.contribution_amount;
+        return sum + (amount && amount > 0 ? amount : 0);
+      }, 0);
+
+      return Math.max(0, itemPrice - totalRaised);
+    },
+    enabled: allowGroupGifting && !!itemPrice && open,
+    refetchInterval: 5000,
+  });
+
+  // Calculate the display amount for the payment button
+  const getPaymentDisplayAmount = () => {
+    if (!itemPrice) return 0;
+    
+    if (allowGroupGifting) {
+      const remaining = groupGiftData ?? itemPrice;
+      if (claimType === "partial") {
+        const amount = parseFloat(contributionAmount);
+        return isNaN(amount) ? 0 : amount;
+      }
+      return remaining;
+    }
+    
+    return itemPrice;
+  };
+
+  const paymentDisplayAmount = getPaymentDisplayAmount();
+
   // Get Paystack key from environment
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
@@ -890,7 +934,7 @@ export const ClaimItemDialog = ({
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Pay {getCurrencySymbol(currency)}{itemPrice?.toFixed(2)}
+                      Pay {getCurrencySymbol(currency)}{paymentDisplayAmount.toFixed(2)}
                     </>
                   )}
                 </Button>

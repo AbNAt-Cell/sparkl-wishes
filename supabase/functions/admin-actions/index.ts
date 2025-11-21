@@ -7,10 +7,18 @@ type SetUserFlagsPayload = {
   isAdmin?: boolean;
 };
 
+type UpdateClaimPayload = {
+  claimId: string;
+  paymentStatus?: string;
+  status?: string;
+};
+
 type RequestBody =
   | { action: "set_user_flags"; payload: SetUserFlagsPayload }
   | { action: "export_users_csv" }
-  | { action: "update_setting"; payload: { key: string; value: unknown } };
+  | { action: "update_setting"; payload: { key: string; value: unknown } }
+  | { action: "update_claim_status"; payload: UpdateClaimPayload }
+  | { action: "delete_claim"; payload: { claimId: string } };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,6 +94,36 @@ serve(async (req) => {
         .upsert({ key, value, updated_at: new Date().toISOString() })
         .eq("key", key);
       if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (body.action === "update_claim_status") {
+      const { claimId, paymentStatus, status } = body.payload;
+      const updates: Record<string, unknown> = {};
+      if (paymentStatus) updates.payment_status = paymentStatus;
+      if (status) updates.status = status;
+
+      if (Object.keys(updates).length === 0) {
+        return new Response(JSON.stringify({ error: "No updates provided" }), { status: 400, headers: corsHeaders });
+      }
+
+      const { error } = await adminClient
+        .from("claims")
+        .update(updates)
+        .eq("id", claimId);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (body.action === "delete_claim") {
+      const { claimId } = body.payload;
+      const { error } = await adminClient
+        .from("claims")
+        .delete()
+        .eq("id", claimId);
+      if (error) throw error;
+
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

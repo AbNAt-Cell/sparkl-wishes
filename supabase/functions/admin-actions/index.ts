@@ -13,12 +13,19 @@ type UpdateClaimPayload = {
   status?: string;
 };
 
+type WithdrawalPayload = {
+  requestId: string;
+  status: string;
+  adminNotes?: string;
+};
+
 type RequestBody =
   | { action: "set_user_flags"; payload: SetUserFlagsPayload }
   | { action: "export_users_csv" }
   | { action: "update_setting"; payload: { key: string; value: unknown } }
   | { action: "update_claim_status"; payload: UpdateClaimPayload }
-  | { action: "delete_claim"; payload: { claimId: string } };
+  | { action: "delete_claim"; payload: { claimId: string } }
+  | { action: "update_withdrawal_status"; payload: WithdrawalPayload };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +132,77 @@ serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (body.action === "update_withdrawal_status") {
+      const { requestId, status, adminNotes } = body.payload;
+      const userId = user.id;
+
+      // Get the withdrawal request details first
+      const { data: withdrawal, error: withdrawalError } = await adminClient
+        .from("withdrawal_requests")
+        .select("*, user_wallets(balance, user_id)")
+        .eq("id", requestId)
+        .single();
+
+      if (withdrawalError) {
+        return new Response(JSON.stringify({ error: withdrawalError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update withdrawal status
+      const updateData: Record<string, unknown> = {
+        status,
+        processed_by: userId,
+        processed_at: new Date().toISOString(),
+      };
+
+      if (adminNotes) {
+        updateData.admin_notes = adminNotes;
+      }
+
+      const { error: updateError } = await adminClient
+        .from("withdrawal_requests")
+        .update(updateData)
+        .eq("id", requestId);
+
+      if (updateError) {
+        return new Response(JSON.stringify({ error: updateError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // If completing, deduct from wallet balance
+      if (status === "completed" && withdrawal) {
+        const { error: deductError } = await adminClient
+          .from("user_wallets")
+          .update({
+            balance: withdrawal.user_wallets.balance - withdrawal.amount,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", withdrawal.wallet_id);
+
+        if (deductError) {
+          console.error("Error deducting from wallet:", deductError);
+        }
+
+        // Create withdrawal transaction
+        await adminClient.from("wallet_transactions").insert({
+          wallet_id: withdrawal.wallet_id,
+          amount: withdrawal.amount,
+          type: "debit",
+          status: "completed",
+          description: "Withdrawal completed",
+          reference: requestId,
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: corsHeaders });

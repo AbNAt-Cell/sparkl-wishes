@@ -105,7 +105,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title, des
           Share
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md w-[calc(100vw-2rem)] sm:w-full">
+      <DialogContent className="max-w-md w-[calc(100vw-2rem)] sm:w-full overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />

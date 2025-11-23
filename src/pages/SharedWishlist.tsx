@@ -129,31 +129,11 @@ const SharedWishlist = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 overflow-x-hidden">
         <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Sparkl Wishes</h1>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div className="flex items-center gap-2">
-                {wishlist && (
-                  <ShareButtons
-                    shareUrl={window.location.href}
-                    title={wishlist.title}
-                    description={wishlist.description || ""}
-                  />
-                )}
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={() => navigate("/")}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Create Yours
-                </Button>
-              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Sparkl Wishes</h1>
             </div>
           </div>
         </header>

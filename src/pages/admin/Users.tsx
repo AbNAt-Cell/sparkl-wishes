@@ -7,6 +7,14 @@ import { Loader2, Search, ShieldCheck, ShieldX, Upload, Ban } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -19,6 +27,8 @@ import {
 
 const AdminUsers: React.FC = () => {
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 20;
   const [confirmAction, setConfirmAction] = useState<{ userId: string; action: string; currentValue: boolean } | null>(null);
   const queryClient = useQueryClient();
 
@@ -84,6 +94,9 @@ const AdminUsers: React.FC = () => {
     return list.filter(u => (u.full_name ?? "").toLowerCase().includes(term) || u.id.startsWith(term));
   }, [data, q]);
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedUsers = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
   const handleAction = (userId: string, action: "promote" | "demote" | "ban" | "unban", currentValue: boolean) => {
     setConfirmAction({ userId, action, currentValue });
   };
@@ -140,45 +153,79 @@ const AdminUsers: React.FC = () => {
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="divide-y">
-            {filtered.map(user => (
-              <div key={user.id} className="py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <img
-                    src={user.avatar_url || "https://placehold.co/40x40?text=%F0%9F%91%A4"}
-                    alt="avatar"
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate max-w-[220px] sm:max-w-[340px]">
-                      {user.full_name || "Unnamed"}
+          <>
+            <div className="divide-y">
+              {paginatedUsers.map(user => (
+                <div key={user.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={user.avatar_url || "https://placehold.co/40x40?text=%F0%9F%91%A4"}
+                      alt="avatar"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate max-w-[220px] sm:max-w-[340px]">
+                        {user.full_name || "Unnamed"}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[240px]">{user.id}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate max-w-[240px]">{user.id}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={user.is_admin ? "outline" : "default"}
+                      size="sm"
+                      onClick={() => handleAction(user.id, user.is_admin ? "demote" : "promote", user.is_admin || false)}
+                      disabled={userActionMutation.isPending}
+                    >
+                      {user.is_admin ? <ShieldX className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+                      {user.is_admin ? "Demote" : "Promote"}
+                    </Button>
+                    <Button
+                      variant={user.is_banned ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleAction(user.id, user.is_banned ? "unban" : "ban", user.is_banned || false)}
+                      disabled={userActionMutation.isPending}
+                    >
+                      <Ban className="w-4 h-4 mr-2" />
+                      {user.is_banned ? "Unban" : "Ban"}
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={user.is_admin ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => handleAction(user.id, user.is_admin ? "demote" : "promote", user.is_admin || false)}
-                    disabled={userActionMutation.isPending}
-                  >
-                    {user.is_admin ? <ShieldX className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-                    {user.is_admin ? "Demote" : "Promote"}
-                  </Button>
-                  <Button
-                    variant={user.is_banned ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleAction(user.id, user.is_banned ? "unban" : "ban", user.is_banned || false)}
-                    disabled={userActionMutation.isPending}
-                  >
-                    <Ban className="w-4 h-4 mr-2" />
-                    {user.is_banned ? "Unban" : "Ban"}
-                  </Button>
-                </div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          onClick={() => setPage(p)}
+                          isActive={page === p}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </CardContent>
 

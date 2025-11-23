@@ -1,12 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const AdminWishlists: React.FC = () => {
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 20;
+
   const { data: wishlists, isLoading } = useQuery({
     queryKey: ["admin-wishlists"],
     queryFn: async () => {
@@ -19,6 +30,9 @@ const AdminWishlists: React.FC = () => {
       return data;
     },
   });
+
+  const totalPages = Math.ceil((wishlists?.length || 0) / itemsPerPage);
+  const paginatedWishlists = wishlists?.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   if (isLoading) {
     return (
@@ -46,7 +60,7 @@ const AdminWishlists: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {wishlists?.map((wishlist) => (
+            {paginatedWishlists?.map((wishlist) => (
               <TableRow key={wishlist.id}>
                 <TableCell className="font-medium">{wishlist.title}</TableCell>
                 <TableCell>{wishlist.profiles?.full_name}</TableCell>
@@ -60,6 +74,38 @@ const AdminWishlists: React.FC = () => {
             ))}
           </TableBody>
         </Table>
+
+        {totalPages > 1 && (
+          <div className="mt-4 flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <PaginationItem key={p}>
+                    <PaginationLink
+                      onClick={() => setPage(p)}
+                      isActive={page === p}
+                      className="cursor-pointer"
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

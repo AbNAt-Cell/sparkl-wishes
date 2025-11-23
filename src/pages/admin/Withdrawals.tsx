@@ -10,6 +10,14 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -30,6 +38,8 @@ import { Label } from "@/components/ui/label";
 const AdminWithdrawals: React.FC = () => {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 20;
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [adminNotes, setAdminNotes] = useState("");
@@ -87,6 +97,9 @@ const AdminWithdrawals: React.FC = () => {
     if (filter === "all") return true;
     return withdrawal.status === filter;
   });
+
+  const totalPages = Math.ceil((filteredWithdrawals?.length || 0) / itemsPerPage);
+  const paginatedWithdrawals = filteredWithdrawals?.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const handleAction = (request: any, type: "approve" | "reject" | "complete") => {
     setSelectedRequest(request);
@@ -172,7 +185,7 @@ const AdminWithdrawals: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredWithdrawals?.map((withdrawal) => (
+                {paginatedWithdrawals?.map((withdrawal) => (
                   <TableRow key={withdrawal.id}>
                     <TableCell className="font-medium">
                       {withdrawal.profiles?.full_name || "Unknown"}
@@ -240,7 +253,7 @@ const AdminWithdrawals: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredWithdrawals?.length === 0 && (
+                {paginatedWithdrawals?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No withdrawal requests found
@@ -249,6 +262,38 @@ const AdminWithdrawals: React.FC = () => {
                 )}
               </TableBody>
             </Table>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          onClick={() => setPage(p)}
+                          isActive={page === p}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -8,6 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Trash2, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -29,6 +38,8 @@ import {
 const AdminClaims: React.FC = () => {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 20;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
 
@@ -37,7 +48,7 @@ const AdminClaims: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("claims")
-        .select("*, wishlist_items(name, wishlists(title, profiles(full_name)))")
+        .select("*, wishlist_items(name, wishlists(title, currency, profiles(full_name)))")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -97,6 +108,9 @@ const AdminClaims: React.FC = () => {
     if (filter === "failed") return claim.payment_status === "failed";
     return true;
   });
+
+  const totalPages = Math.ceil((filteredClaims?.length || 0) / itemsPerPage);
+  const paginatedClaims = filteredClaims?.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const handleMarkCompleted = (claimId: string) => {
     updateClaimMutation.mutate({ claimId, paymentStatus: "completed" });
@@ -171,7 +185,7 @@ const AdminClaims: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClaims?.map((claim) => (
+                {paginatedClaims?.map((claim) => (
                   <TableRow key={claim.id}>
                     <TableCell className="font-medium">{claim.wishlist_items?.name}</TableCell>
                     <TableCell>{claim.wishlist_items?.wishlists?.title}</TableCell>
@@ -180,7 +194,9 @@ const AdminClaims: React.FC = () => {
                       {claim.is_anonymous ? "Anonymous" : claim.claimer_name || "-"}
                     </TableCell>
                     <TableCell>
-                      {claim.contribution_amount ? `$${claim.contribution_amount}` : "-"}
+                      {claim.contribution_amount 
+                        ? formatCurrency(claim.contribution_amount, claim.wishlist_items?.wishlists?.currency || "USD", false)
+                        : "-"}
                     </TableCell>
                     <TableCell>{getStatusBadge(claim)}</TableCell>
                     <TableCell>{format(new Date(claim.created_at), "PPp")}</TableCell>
@@ -212,7 +228,7 @@ const AdminClaims: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredClaims?.length === 0 && (
+                {paginatedClaims?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No claims found
@@ -221,6 +237,38 @@ const AdminClaims: React.FC = () => {
                 )}
               </TableBody>
             </Table>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          onClick={() => setPage(p)}
+                          isActive={page === p}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

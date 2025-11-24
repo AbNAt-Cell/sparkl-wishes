@@ -61,43 +61,4 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title, des
     const text = `Check out my wishlist: ${title}`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(
       shareUrl
-    )}`;
-    window.open(url, "_blank", "width=600,height=400");
-    toast.success("Opening Twitter...");
-  };
-
-  const handleEmailShare = () => {
-    const subject = encodeURIComponent(`Check out my wishlist: ${title}`);
-    const body = encodeURIComponent(shareText);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    toast.success("Opening email client...");
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      toast.success("Link copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast.error("Failed to copy link");
-    }
-  };
-
-  const handleDownloadQR = () => {
-    if (!qrCodeUrl) return;
-
-    const link = document.createElement("a");
-    link.download = `${title.replace(/\s+/g, "-")}-qr-code.png`;
-    link.href = qrCodeUrl;
-    link.click();
-    toast.success("QR code downloaded!");
-  };
-
-  return (
-    <Dialog open={dialogOpen} onOpenChange={handleDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Share2 className="w-4 h-4 mr-2" />
-          Share
-        </Button>
+     

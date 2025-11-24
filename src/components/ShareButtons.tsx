@@ -123,31 +123,27 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title, des
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
               <Button
                 onClick={handleWhatsAppShare}
-                className="bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
+                className="bg-green-500 hover:bg-green-600 text-white h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center p-0"
               >
-                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
-                <span className="hidden sm:inline">WhatsApp</span>
+                <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
               </Button>
               <Button
                 onClick={handleFacebookShare}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
+                className="bg-blue-600 hover:bg-blue-700 text-white h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center p-0"
               >
-                <Facebook className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
-                <span className="hidden sm:inline">Facebook</span>
+                <Facebook className="w-5 h-5 sm:w-6 sm:h-6" />
               </Button>
               <Button
                 onClick={handleTwitterShare}
-                className="bg-sky-500 hover:bg-sky-600 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
+                className="bg-sky-500 hover:bg-sky-600 text-white h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center p-0"
               >
-                <Twitter className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
-                <span className="hidden sm:inline">Twitter</span>
+                <Twitter className="w-5 h-5 sm:w-6 sm:h-6" />
               </Button>
               <Button
                 onClick={handleEmailShare}
-                className="bg-gray-600 hover:bg-gray-700 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
+                className="bg-gray-600 hover:bg-gray-700 text-white h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center p-0"
               >
-                <Mail className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
-                <span className="hidden sm:inline">Email</span>
+                <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
               </Button>
             </div>
           </div>

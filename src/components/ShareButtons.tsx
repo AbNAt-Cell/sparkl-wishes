@@ -96,7 +96,6 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
             <Share2 className="w-6 h-6 text-purple-600" />
             Share Wishlist
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1 pl-9">{title}</p>
         </DialogHeader>
 
         <div className="grid gap-7 py-4">

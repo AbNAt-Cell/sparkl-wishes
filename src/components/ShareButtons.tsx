@@ -30,7 +30,6 @@ interface ShareButtonsProps {
 export const ShareButtons: React.FC<ShareButtonsProps> = ({
   shareUrl,
   title,
-  description,
 }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -55,18 +54,17 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
     }
   };
 
-  const shareText = description
-    ? `${title}\n\n${description}\n\n${shareUrl}`
-    : `${title}\nCheck it out: ${shareUrl}`;
+  // This is the exact message your friends will see
+  const shareText = `Hi, kindly buy me something on my wishlist\n\n${title}\n\n${shareUrl}`;
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success("Link copied to clipboard!");
+      toast.success("Link copied!");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Failed to copy link");
+      toast.error("Failed to copy");
     }
   };
 
@@ -93,20 +91,19 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
         </Button>
       </DialogTrigger>
 
-      {/* Wider & more spacious modal */}
       <DialogContent className="max-w-lg w-[95vw] rounded-2xl p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-2xl font-semibold">
             <Share2 className="w-6 h-6 text-purple-600" />
             Share Wishlist
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            "{title}"
+          <p className="text-sm text-muted-foreground mt-1 pl-9">
+            {title}
           </p>
         </DialogHeader>
 
         <div className="grid gap-7 py-4">
-          {/* Social Buttons – 2×2 grid */}
+          {/* Social Sharing */}
           <div className="grid grid-cols-2 gap-4">
             <Button
               onClick={() =>
@@ -116,89 +113,4 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
                   "noopener,noreferrer"
                 )
               }
-              className="h-14 bg-[#25D366] hover:bg-[#128C7E] text-white font-medium text-base"
-            >
-              <MessageCircle className="w-6 h-6 mr-3" />
-              WhatsApp
-            </Button>
-
-            <Button
-              onClick={() =>
-                window.open(
-                  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
-                  "_blank"
-                )
-              }
-              className="h-14 bg-[#1877F2] hover:bg-[#166fe5] text-white font-medium text-base"
-            >
-              <Facebook className="w-6 h-6 mr-3" />
-              Facebook
-            </Button>
-
-            <Button
-              onClick={() =>
-                window.open(
-                  `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`,
-                  "_blank"
-                )
-              }
-              className="h-14 bg-black hover:bg-gray-800 text-white font-medium text-base"
-            >
-              <X className="w-6 h-6 mr-3" />
-              X (Twitter)
-            </Button>
-
-            <Button
-              onClick={() => {
-                window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(shareText)}`;
-              }}
-              className="h-14 bg-gray-700 hover:bg-gray-800 text-white font-medium text-base"
-            >
-              <Mail className="w-6 h-6 mr-3" />
-              Email
-            </Button>
-          </div>
-
-          {/* Copy Link */}
-          <div className="space-y-3">
-            <p className="text-center text-sm font-medium text-muted-foreground">
-              Or copy the link
-            </p>
-            <div className="flex gap-3">
-              <div className="flex-1 truncate rounded-lg border bg-muted px-4 py-3 text-sm font-mono">
-                {shareUrl}
-              </div>
-              <Button onClick={handleCopy} variant="outline" size="icon" className="h-12 w-12">
-                {copied ? <Check className="h-5 w-5 text-green-600" /> : <Copy className="h-5 w-5" />}
-              </Button>
-            </div>
-          </div>
-
-          {/* QR Code */}
-          <div className="space-y-5">
-            <p className="text-center text-sm font-medium text-muted-foreground">
-              QR Code (perfect for invitations)
-            </p>
-            <div className="flex flex-col items-center">
-              {qrCodeUrl ? (
-                <>
-                  <div className="rounded-2xl border-2 border-dashed border-purple-200 bg-white p-6 shadow-lg">
-                    <img src={qrCodeUrl} alt="Wishlist QR Code" className="w-56 h-56" />
-                  </div>
-                  <Button onClick={handleDownloadQR} variant="outline" className="mt-5 w-full max-w-xs">
-                    <QrCode className="w-5 h-5 mr-2" />
-                    Download QR Code
-                  </Button>
-                </>
-              ) : (
-                <div className="flex h-56 w-56 items-center justify-center rounded-2xl bg-muted">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+              className="h-14

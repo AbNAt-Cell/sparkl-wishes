@@ -120,7 +120,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title, des
           {/* Social Share Buttons */}
           <div className="space-y-2 sm:space-y-3">
             <h4 className="text-xs sm:text-sm font-medium text-muted-foreground text-center">Share via</h4>
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               <Button
                 onClick={handleWhatsAppShare}
                 className="bg-green-500 hover:bg-green-600 text-white h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center p-0"

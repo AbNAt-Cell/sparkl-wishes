@@ -54,7 +54,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
     }
   };
 
-  // This is the exact message your friends will see
+  // Message that will be shared
   const shareText = `Hi, kindly buy me something on my wishlist\n\n${title}\n\n${shareUrl}`;
 
   const handleCopy = async () => {
@@ -96,21 +96,4 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
           <DialogTitle className="flex items-center gap-3 text-2xl font-semibold">
             <Share2 className="w-6 h-6 text-purple-600" />
             Share Wishlist
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1 pl-9">
-            {title}
-          </p>
-        </DialogHeader>
-
-        <div className="grid gap-7 py-4">
-          {/* Social Sharing */}
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              onClick={() =>
-                window.open(
-                  `https://wa.me/?text=${encodeURIComponent(shareText)}`,
-                  "_blank",
-                  "noopener,noreferrer"
-                )
-              }
-              className="h-14
+          </DialogTitle

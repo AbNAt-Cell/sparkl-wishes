@@ -119,34 +119,34 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title, des
         <div className="space-y-4 sm:space-y-6">
           {/* Social Share Buttons */}
           <div className="space-y-2 sm:space-y-3">
-            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">Share via</h4>
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground text-center">Share via</h4>
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
               <Button
                 onClick={handleWhatsAppShare}
-                className="bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm h-9 sm:h-10"
+                className="bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
               >
-                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
                 <span className="hidden sm:inline">WhatsApp</span>
               </Button>
               <Button
                 onClick={handleFacebookShare}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-9 sm:h-10"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
               >
-                <Facebook className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                <Facebook className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
                 <span className="hidden sm:inline">Facebook</span>
               </Button>
               <Button
                 onClick={handleTwitterShare}
-                className="bg-sky-500 hover:bg-sky-600 text-white text-xs sm:text-sm h-9 sm:h-10"
+                className="bg-sky-500 hover:bg-sky-600 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
               >
-                <Twitter className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                <Twitter className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
                 <span className="hidden sm:inline">Twitter</span>
               </Button>
               <Button
                 onClick={handleEmailShare}
-                className="bg-gray-600 hover:bg-gray-700 text-white text-xs sm:text-sm h-9 sm:h-10"
+                className="bg-gray-600 hover:bg-gray-700 text-white text-xs sm:text-sm h-9 w-9 sm:h-10 sm:w-auto flex items-center justify-center"
               >
-                <Mail className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                <Mail className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2 flex-shrink-0" />
                 <span className="hidden sm:inline">Email</span>
               </Button>
             </div>
@@ -154,16 +154,16 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title, des
 
           {/* Copy Link */}
           <div className="space-y-2 sm:space-y-3">
-            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">Or copy link</h4>
-            <div className="flex gap-2">
-              <div className="flex-1 px-2 sm:px-3 py-2 bg-muted rounded-md text-xs sm:text-sm truncate border min-w-0">
+            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground text-center">Or copy link</h4>
+            <div className="flex gap-2 items-center">
+              <div className="flex-1 px-2 sm:px-3 py-2 bg-muted rounded-md text-xs sm:text-sm truncate border min-w-0 text-center">
                 {shareUrl}
               </div>
-              <Button onClick={handleCopyLink} variant="outline" size="icon" className="h-9 w-9 flex-shrink-0">
+              <Button onClick={handleCopyLink} variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
                 {copied ? (
-                  <Check className="w-4 h-4 text-green-600" />
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                 ) : (
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </Button>
             </div>
@@ -171,14 +171,14 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title, des
 
           {/* QR Code */}
           <div className="space-y-2 sm:space-y-3">
-            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">QR Code</h4>
+            <h4 className="text-xs sm:text-sm font-medium text-muted-foreground text-center">QR Code</h4>
             {qrCodeUrl ? (
               <div className="space-y-2 sm:space-y-3">
-                <div className="flex justify-center p-3 sm:p-4 bg-white border rounded-lg">
-                  <img src={qrCodeUrl} alt="QR Code" className="w-32 h-32 sm:w-48 sm:h-48" />
+                <div className="flex justify-center p-3 sm:p-4 bg-white border rounded-lg mx-auto max-w-fit">
+                  <img src={qrCodeUrl} alt="QR Code" className="w-40 h-40 sm:w-48 sm:h-48" />
                 </div>
-                <Button onClick={handleDownloadQR} variant="outline" className="w-full text-xs sm:text-sm h-9 sm:h-10">
-                  <QrCode className="w-4 h-4 mr-2" />
+                <Button onClick={handleDownloadQR} variant="outline" className="w-full text-xs sm:text-sm h-9 sm:h-10 flex items-center justify-center">
+                  <QrCode className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Download QR Code
                 </Button>
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-center">

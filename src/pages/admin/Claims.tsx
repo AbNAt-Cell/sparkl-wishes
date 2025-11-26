@@ -76,6 +76,26 @@ const AdminClaims: React.FC = () => {
     },
   });
 
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async ({ claimId, paymentReference }: { claimId: string; paymentReference: string }) => {
+      const { data, error } = await supabase.functions.invoke("admin-actions", {
+        body: {
+          action: "verify_payment",
+          payload: { claimId, paymentReference },
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-claims"] });
+      toast.success("Payment verified and claim completed");
+    },
+    onError: (error) => {
+      toast.error(`Failed to verify payment: ${error.message}`);
+    },
+  });
+
   const deleteClaimMutation = useMutation({
     mutationFn: async (claimId: string) => {
       const { data, error } = await supabase.functions.invoke("admin-actions", {
@@ -114,6 +134,14 @@ const AdminClaims: React.FC = () => {
 
   const handleMarkCompleted = (claimId: string) => {
     updateClaimMutation.mutate({ claimId, paymentStatus: "completed" });
+  };
+
+  const handleVerifyPayment = (claimId: string, paymentReference: string) => {
+    if (!paymentReference) {
+      toast.error("No payment reference found for this claim");
+      return;
+    }
+    verifyPaymentMutation.mutate({ claimId, paymentReference });
   };
 
   const handleDelete = (claimId: string) => {
@@ -205,6 +233,17 @@ const AdminClaims: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {claim.payment_status === "pending" && claim.payment_reference && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleVerifyPayment(claim.id, claim.payment_reference)}
+                            disabled={verifyPaymentMutation.isPending}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            Verify Payment
+                          </Button>
+                        )}
                         {claim.payment_status === "pending" && (
                           <Button
                             size="sm"

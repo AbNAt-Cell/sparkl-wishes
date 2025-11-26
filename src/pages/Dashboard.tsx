@@ -87,6 +87,31 @@ const Dashboard = () => {
     enabled: !!session?.user?.id,
   });
 
+  // Fetch claimers for user's wishlist items
+  const { data: claimers } = useQuery({
+    queryKey: ["user-claimers", session?.user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("claims")
+        .select(`
+          *,
+          wishlist_items(
+            name,
+            price_min,
+            price_max,
+            wishlist_id,
+            wishlists(title, currency, user_id)
+          )
+        `)
+        .eq("wishlist_items.wishlists.user_id", session!.user!.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data?.filter(claim => claim.wishlist_items?.wishlists?.user_id === session!.user!.id);
+    },
+    enabled: !!session?.user?.id,
+  });
+
   const handleDeleteClick = (wishlistId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setWishlistToDelete(wishlistId);
@@ -229,16 +254,36 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Wishlists Grid */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-gray-900">Your Wishlists</h2>
-                {wishlists && wishlists.length > 0 && (
-                  <Badge variant="secondary" className="text-sm font-medium px-3 py-1">
-                    {wishlists.length} wishlist{wishlists.length !== 1 ? 's' : ''}
-                  </Badge>
-                )}
-              </div>
+            {/* Tabs for Wishlists and Claimers */}
+            <Tabs defaultValue="wishlists" className="space-y-4">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="wishlists">
+                  Your Wishlists
+                  {wishlists && wishlists.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {wishlists.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="claimers">
+                  Claimers
+                  {claimers && claimers.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {claimers.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="wishlists" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-semibold text-gray-900">Your Wishlists</h2>
+                  {wishlists && wishlists.length > 0 && (
+                    <Badge variant="secondary" className="text-sm font-medium px-3 py-1">
+                      {wishlists.length} wishlist{wishlists.length !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </div>
 
               {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -376,7 +421,106 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             )}
-            </div>
+              </TabsContent>
+
+              <TabsContent value="claimers" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-semibold text-gray-900">People Who Claimed Your Items</h2>
+                  {claimers && claimers.length > 0 && (
+                    <Badge variant="secondary" className="text-sm font-medium px-3 py-1">
+                      {claimers.length} claim{claimers.length !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </div>
+
+                {claimers && claimers.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {claimers.map((claim) => (
+                      <Card key={claim.id} className="border-0 shadow-md bg-white">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg mb-1">
+                                {claim.is_anonymous ? "Anonymous" : claim.claimer_name || "Someone"}
+                              </CardTitle>
+                              <CardDescription className="text-sm">
+                                Claimed "{claim.wishlist_items?.name}" from {claim.wishlist_items?.wishlists?.title}
+                              </CardDescription>
+                            </div>
+                            <Badge 
+                              variant={claim.payment_status === "completed" ? "default" : "secondary"}
+                              className="ml-2"
+                            >
+                              {claim.payment_status === "completed" ? "Paid" : claim.payment_status}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground mb-1">Amount</p>
+                              <p className="font-semibold">
+                                {claim.contribution_amount 
+                                  ? formatCurrency(claim.contribution_amount, claim.wishlist_items?.wishlists?.currency || "USD")
+                                  : "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground mb-1">Date</p>
+                              <p className="font-medium">{formatDate(claim.created_at, 'short')}</p>
+                            </div>
+                          </div>
+                          
+                          {!claim.is_anonymous && claim.claimer_email && (
+                            <div className="text-sm">
+                              <p className="text-muted-foreground mb-1">Contact</p>
+                              <p className="font-medium">{claim.claimer_email}</p>
+                              {claim.claimer_phone && (
+                                <p className="font-medium text-muted-foreground">{claim.claimer_phone}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {claim.notes && (
+                            <div className="text-sm">
+                              <p className="text-muted-foreground mb-1">Message</p>
+                              <p className="font-medium bg-muted/50 p-3 rounded-md">{claim.notes}</p>
+                            </div>
+                          )}
+
+                          {claim.thank_you_message && (
+                            <div className="text-sm border-t pt-3">
+                              <p className="text-muted-foreground mb-1">Your Thank You</p>
+                              <p className="font-medium text-green-700 bg-green-50 p-3 rounded-md">{claim.thank_you_message}</p>
+                            </div>
+                          )}
+
+                          {claim.payment_reference && (
+                            <div className="text-xs text-muted-foreground border-t pt-2">
+                              <p>Reference: {claim.payment_reference}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="text-center py-16 border-0 shadow-lg bg-white">
+                    <CardContent className="space-y-4">
+                      <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                        <Gift className="w-10 h-10 text-purple-600" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-gray-900">No Claims Yet</h3>
+                        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                          When people claim items from your wishlists, you'll see their details and messages here.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
       </main>
 

@@ -19,13 +19,19 @@ type WithdrawalPayload = {
   adminNotes?: string;
 };
 
+type VerifyPaymentPayload = {
+  claimId: string;
+  paymentReference: string;
+};
+
 type RequestBody =
   | { action: "set_user_flags"; payload: SetUserFlagsPayload }
   | { action: "export_users_csv" }
   | { action: "update_setting"; payload: { key: string; value: unknown } }
   | { action: "update_claim_status"; payload: UpdateClaimPayload }
   | { action: "delete_claim"; payload: { claimId: string } }
-  | { action: "update_withdrawal_status"; payload: WithdrawalPayload };
+  | { action: "update_withdrawal_status"; payload: WithdrawalPayload }
+  | { action: "verify_payment"; payload: VerifyPaymentPayload };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -132,6 +138,62 @@ serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (body.action === "verify_payment") {
+      const { claimId, paymentReference } = body.payload;
+      const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY");
+
+      if (!paystackSecretKey) {
+        return new Response(JSON.stringify({ error: "Paystack secret key not configured" }), {
+          status: 500,
+          headers: corsHeaders,
+        });
+      }
+
+      // Verify payment with Paystack
+      const verifyUrl = `https://api.paystack.co/transaction/verify/${paymentReference}`;
+      const paystackResponse = await fetch(verifyUrl, {
+        headers: {
+          Authorization: `Bearer ${paystackSecretKey}`,
+        },
+      });
+
+      if (!paystackResponse.ok) {
+        return new Response(JSON.stringify({ error: "Failed to verify payment with Paystack" }), {
+          status: 500,
+          headers: corsHeaders,
+        });
+      }
+
+      const paystackData = await paystackResponse.json();
+      
+      // Check if payment was successful
+      if (paystackData.data?.status === "success") {
+        // Update claim to completed
+        const { error } = await adminClient
+          .from("claims")
+          .update({ payment_status: "completed" })
+          .eq("id", claimId);
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          verified: true,
+          amount: paystackData.data.amount / 100 // Paystack returns amount in kobo
+        }), { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
+      } else {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          verified: false,
+          status: paystackData.data?.status 
+        }), { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
+      }
     }
 
     if (body.action === "update_withdrawal_status") {

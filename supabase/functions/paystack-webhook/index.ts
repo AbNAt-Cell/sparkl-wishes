@@ -78,7 +78,6 @@ serve(async (req) => {
           payment_status: "completed",   // ← Payment confirmed
           payment_method: "paystack",
           payment_reference: reference,
-          paid_at: new Date().toISOString(),
         })
         .eq("id", claimId);
 

@@ -489,23 +489,18 @@ export const ClaimItemDialog = ({
         claimType,
       });
 
-      // Get current user ID - claims require a user_id
+      // Get current user ID if available (guest claims are allowed)
       let claimUserId = currentUserId;
       if (!claimUserId) {
         const { data: { user } } = await supabase.auth.getUser();
-        claimUserId = user?.id;
-      }
-
-      if (!claimUserId) {
-        toast.error("Please log in to claim items");
-        setIsSubmitting(false);
-        return;
+        claimUserId = user?.id ?? null;
       }
 
       const { data: claimData, error: claimError } = await supabase
         .from("claims")
         .insert({
           item_id: itemId,
+          ...(claimUserId && { user_id: claimUserId }),
           user_id: claimUserId,
           claimer_name: formData.name,
           claimer_email: formData.email,

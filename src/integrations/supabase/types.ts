@@ -148,7 +148,7 @@ export type Database = {
           status: string | null
           thank_you_message: string | null
           thank_you_sent_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           claimer_email?: string | null
@@ -168,7 +168,7 @@ export type Database = {
           status?: string | null
           thank_you_message?: string | null
           thank_you_sent_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           claimer_email?: string | null
@@ -188,7 +188,7 @@ export type Database = {
           status?: string | null
           thank_you_message?: string | null
           thank_you_sent_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {

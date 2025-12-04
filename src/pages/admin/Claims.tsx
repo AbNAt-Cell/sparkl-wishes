@@ -56,26 +56,6 @@ const AdminClaims: React.FC = () => {
     },
   });
 
-  const updateClaimMutation = useMutation({
-    mutationFn: async ({ claimId, paymentStatus }: { claimId: string; paymentStatus: string }) => {
-      const { data, error } = await supabase.functions.invoke("admin-actions", {
-        body: {
-          action: "update_claim_status",
-          payload: { claimId, paymentStatus },
-        },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-claims"] });
-      toast.success("Claim updated successfully");
-    },
-    onError: (error) => {
-      toast.error(`Failed to update claim: ${error.message}`);
-    },
-  });
-
   const verifyPaymentMutation = useMutation({
     mutationFn: async ({ claimId, paymentReference }: { claimId: string; paymentReference: string }) => {
       const { data, error } = await supabase.functions.invoke("admin-actions", {
@@ -132,9 +112,6 @@ const AdminClaims: React.FC = () => {
   const totalPages = Math.ceil((filteredClaims?.length || 0) / itemsPerPage);
   const paginatedClaims = filteredClaims?.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  const handleMarkCompleted = (claimId: string) => {
-    updateClaimMutation.mutate({ claimId, paymentStatus: "completed" });
-  };
 
   const handleVerifyPayment = (claimId: string, paymentReference: string) => {
     if (!paymentReference) {
@@ -242,17 +219,6 @@ const AdminClaims: React.FC = () => {
                           >
                             <CheckCircle2 className="w-4 h-4 mr-1" />
                             Verify Payment
-                          </Button>
-                        )}
-                        {claim.payment_status === "pending" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleMarkCompleted(claim.id)}
-                            disabled={updateClaimMutation.isPending}
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            Mark Paid
                           </Button>
                         )}
                         <Button

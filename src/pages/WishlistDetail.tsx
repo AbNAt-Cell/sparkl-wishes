@@ -254,13 +254,14 @@ const WishlistDetail = () => {
                     </DialogTrigger>
 
                     {/* FULL-WIDTH, VISIBLE ADD ITEM MODAL */}
-                    <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-4 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader className="mb-8">
-                        <DialogTitle className="text-3xl font-bold">Add New Item</DialogTitle>
-                        <DialogDescription className="text-lg">Tell your guests what you'd love</DialogDescription>
-                      </DialogHeader>
-
-                      <form onSubmit={handleAddItem} className="space-y-8">
+                    <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-2 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
+                      <Card className="shadow-elegant">
+                        <CardHeader>
+                          <CardTitle className="text-3xl">Add New Item</CardTitle>
+                          <CardDescription className="text-lg">Tell your guests what you'd love</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <form onSubmit={handleAddItem} className="space-y-6">
                         <div className="space-y-2">
                           <Label className="text-lg font-medium">Item Name *</Label>
                           <Input
@@ -357,10 +358,12 @@ const WishlistDetail = () => {
                           </RadioGroup>
                         </div>
 
-                        <Button type="submit" size="lg" className="w-full h-16 text-xl font-bold">
-                          Add Item
-                        </Button>
-                      </form>
+                            <Button type="submit" size="lg" className="w-full h-16 text-xl font-bold">
+                              Add Item
+                            </Button>
+                          </form>
+                        </CardContent>
+                      </Card>
                     </DialogContent>
                   </Dialog>
                 )}
@@ -425,13 +428,14 @@ const WishlistDetail = () => {
 
         {/* EDIT ITEM MODAL */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-4 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="mb-8">
-              <DialogTitle className="text-3xl font-bold">Edit Item</DialogTitle>
-              <DialogDescription className="text-lg">Update your item details</DialogDescription>
-            </DialogHeader>
-
-            <form onSubmit={handleEditItem} className="space-y-8">
+          <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-2 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
+            <Card className="shadow-elegant">
+              <CardHeader>
+                <CardTitle className="text-3xl">Edit Item</CardTitle>
+                <CardDescription className="text-lg">Update your item details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleEditItem} className="space-y-6">
               <div className="space-y-2">
                 <Label className="text-lg font-medium">Item Name *</Label>
                 <Input
@@ -528,15 +532,17 @@ const WishlistDetail = () => {
                 </RadioGroup>
               </div>
 
-              <div className="flex gap-4">
-                <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); resetFormData(); }} className="w-full h-14 text-lg">
-                  Cancel
-                </Button>
-                <Button type="submit" className="w-full h-14 text-lg font-bold">
-                  Update Item
-                </Button>
-              </div>
-            </form>
+                  <div className="flex gap-4">
+                    <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); resetFormData(); }} className="w-full h-14 text-lg">
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="w-full h-14 text-lg font-bold">
+                      Update Item
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           </DialogContent>
         </Dialog>
 

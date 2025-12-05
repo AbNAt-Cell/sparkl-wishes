@@ -254,7 +254,7 @@ const WishlistDetail = () => {
                     </DialogTrigger>
 
                     {/* FULL-WIDTH, VISIBLE ADD ITEM MODAL */}
-                    <DialogContent className="w-[95vw] max-w-2xl mx-auto p-6 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-4 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader className="mb-8">
                         <DialogTitle className="text-3xl font-bold">Add New Item</DialogTitle>
                         <DialogDescription className="text-lg">Tell your guests what you'd love</DialogDescription>
@@ -287,7 +287,7 @@ const WishlistDetail = () => {
                           <div className="space-y-2">
                             <Label className="text-lg font-medium">Min Price</Label>
                             <PriceInput
-                              value={itemFormData.price90_min}
+                              value={itemFormData.price_min}
                               onChange={(v) => setItemFormData({ ...itemFormData, price_min: v })}
                               currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")}
                               className="h-14 text-lg"
@@ -423,6 +423,123 @@ const WishlistDetail = () => {
           )}
         </section>
 
+        {/* EDIT ITEM MODAL */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-4 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-3xl font-bold">Edit Item</DialogTitle>
+              <DialogDescription className="text-lg">Update your item details</DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleEditItem} className="space-y-8">
+              <div className="space-y-2">
+                <Label className="text-lg font-medium">Item Name *</Label>
+                <Input
+                  value={itemFormData.name}
+                  onChange={(e) => setItemFormData({ ...itemFormData, name: e.target.value })}
+                  required
+                  placeholder="e.g. AirPods Pro"
+                  className="h-14 text-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg font-medium">Description</Label>
+                <Textarea
+                  rows={5}
+                  value={itemFormData.description}
+                  onChange={(e) => setItemFormData({ ...itemFormData, description: e.target.value })}
+                  placeholder="Color, size, model..."
+                  className="resize-none text-lg min-h-36"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-lg font-medium">Min Price</Label>
+                  <PriceInput
+                    value={itemFormData.price_min}
+                    onChange={(v) => setItemFormData({ ...itemFormData, price_min: v })}
+                    currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")}
+                    className="h-14 text-lg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-lg font-medium">Max Price</Label>
+                  <PriceInput
+                    value={itemFormData.price_max}
+                    onChange={(v) => setItemFormData({ ...itemFormData, price_max: v })}
+                    currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")}
+                    className="h-14 text-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-lg font-medium">Product Link</Label>
+                <Input
+                  type="url"
+                  value={itemFormData.external_link}
+                  onChange={(e) => setItemFormData({ ...itemFormData, external_link: e.target.value })}
+                  placeholder="https://amazon.com/..."
+                  className="h-14 text-lg"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-lg font-medium">Image (Optional)</Label>
+                {imagePreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border-4 border-dashed">
+                    <img src={imagePreview} alt="preview" className="w-full aspect-video object-cover" />
+                    <Button type="button" variant="destructive" size="icon" className="absolute top-4 right-4" onClick={handleRemoveImage}><X /></Button>
+                  </div>
+                ) : (
+                  <div className="border-4 border-dashed rounded-2xl p-10 text-center bg-muted/10">
+                    <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+                    <p className="text-lg text-muted-foreground mt-4">or paste image URL</p>
+                    <Input
+                      type="url"
+                      value={itemFormData.image_url}
+                      onChange={(e) => {
+                        const url = e.target.value;
+                        setItemFormData({ ...itemFormData, image_url: url });
+                        if (url) setImagePreview(url);
+                      }}
+                      className="h-14 mt-4"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-5">
+                <Label className="text-xl font-semibold">Who can claim?</Label>
+                <RadioGroup
+                  value={itemFormData.allow_group_gifting ? "group" : "single"}
+                  onValueChange={(v) => setItemFormData({ ...itemFormData, allow_group_gifting: v === "group" })}
+                >
+                  <div className="flex items-center space-x-5 border rounded-2xl p-6">
+                    <RadioGroupItem value="single" id="single-edit" />
+                    <Label htmlFor="single-edit" className="cursor-pointer text-lg font-medium">Single Person</Label>
+                  </div>
+                  <div className="flex items-center space-x-5 border rounded-2xl p-6">
+                    <RadioGroupItem value="group" id="group-edit" />
+                    <Label htmlFor="group-edit" className="cursor-pointer text-lg font-medium">Group Gifting</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="flex gap-4">
+                <Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); resetFormData(); }} className="w-full h-14 text-lg">
+                  Cancel
+                </Button>
+                <Button type="submit" className="w-full h-14 text-lg font-bold">
+                  Update Item
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         {/* DELETE MODAL - FULLY WORKING */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent className="max-w-sm w-[90vw] mx-auto p-8 rounded-3xl">
@@ -433,9 +550,7 @@ const WishlistDetail = () => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col sm:flex-row gap-4 mt-8">
-              <Alert
-
-DialogCancel className="w-full h-14 text-lg">Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="w-full h-14 text-lg">Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmDelete} className="w-full h-14 text-lg bg-red-600 hover:bg-red-700">
                 Delete Item
               </AlertDialogAction>

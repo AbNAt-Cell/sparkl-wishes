@@ -254,7 +254,7 @@ const WishlistDetail = () => {
                     </DialogTrigger>
 
                     {/* FULL-WIDTH, VISIBLE ADD ITEM MODAL */}
-                    <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-2 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="w-[95vw] h-[90vh] sm:h-auto sm:max-w-2xl mx-auto p-2 sm:p-10 rounded-3xl overflow-y-auto">
                       <Card className="shadow-elegant">
                         <CardHeader>
                           <CardTitle className="text-3xl">Add New Item</CardTitle>
@@ -428,7 +428,7 @@ const WishlistDetail = () => {
 
         {/* EDIT ITEM MODAL */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="w-[95vw] sm:max-w-2xl mx-auto p-2 sm:p-10 rounded-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] h-[90vh] sm:h-auto sm:max-w-2xl mx-auto p-2 sm:p-10 rounded-3xl overflow-y-auto">
             <Card className="shadow-elegant">
               <CardHeader>
                 <CardTitle className="text-3xl">Edit Item</CardTitle>

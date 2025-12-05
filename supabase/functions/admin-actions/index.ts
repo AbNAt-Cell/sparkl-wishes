@@ -55,13 +55,21 @@ serve(async (req) => {
     if (userErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
-    const role = user.app_metadata?.role;
-    if (role !== "admin") {
+
+    const adminClient = createClient(supabaseUrl, serviceKey);
+
+    // Check admin status from profiles table
+    const { data: profile, error: profileError } = await adminClient
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+    
+    if (profileError || !profile?.is_admin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
     const body = (await req.json()) as RequestBody;
-    const adminClient = createClient(supabaseUrl, serviceKey);
 
     if (body.action === "set_user_flags") {
       const { userId, isBanned, isAdmin } = body.payload;

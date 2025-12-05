@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Calendar, Gift, Loader2, Trash2, Share2, Wallet, TrendingUp, HelpCircle, Eye, Copy, ExternalLink, BarChart3 } from "lucide-react";
+import { Plus, Calendar, Gift, Loader2, Trash2, Share2, Wallet, TrendingUp, HelpCircle, Eye, Copy, ExternalLink } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -188,8 +188,8 @@ const Dashboard = () => {
               </div>
 
               {/* Quick Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border-0 shadow-md bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="border border-border/50 shadow-sm bg-white/80 backdrop-blur-sm">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between">
                       <div>
@@ -205,7 +205,7 @@ const Dashboard = () => {
 
                 {wallets && wallets.length > 0 && (
                   <Card 
-                    className="border-0 shadow-md bg-gradient-to-br from-green-50 to-emerald-50 cursor-pointer hover:shadow-lg transition-shadow"
+                    className="border border-border/50 shadow-sm bg-gradient-to-br from-green-50/80 to-emerald-50/80 backdrop-blur-sm cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => navigate("/wallet")}
                   >
                     <CardContent className="p-5">
@@ -235,22 +235,6 @@ const Dashboard = () => {
                     </CardContent>
                   </Card>
                 )}
-
-                <Card className="border-0 shadow-md bg-white">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">Quick Actions</p>
-                        <div className="flex gap-2 mt-2">
-                          <Button size="sm" variant="outline" onClick={() => navigate("/profile")}>
-                            <BarChart3 className="w-4 h-4 mr-1" />
-                            Profile
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </div>
 
@@ -301,7 +285,7 @@ const Dashboard = () => {
                 {wishlists.map((wishlist) => (
                   <Card
                     key={wishlist.id}
-                    className="cursor-pointer hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white group overflow-hidden"
+                    className="cursor-pointer hover:shadow-md transition-all duration-300 border border-border/50 shadow-sm bg-white/90 backdrop-blur-sm group overflow-hidden"
                   >
                     {wishlist.cover_image && (
                       <div className="h-48 w-full overflow-hidden relative" onClick={() => navigate(`/wishlist/${wishlist.id}`)}>
@@ -391,9 +375,9 @@ const Dashboard = () => {
                 ))}
               </div>
             ) : (
-              <Card className="text-center py-20 border-0 shadow-lg bg-white">
+              <Card className="text-center py-20 border border-border/50 shadow-sm bg-white/90 backdrop-blur-sm">
                 <CardContent className="space-y-6">
-                  <div className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
+                  <div className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-md">
                     <Gift className="w-12 h-12 text-white" />
                   </div>
                   <div className="space-y-2">
@@ -436,7 +420,7 @@ const Dashboard = () => {
                 {claimers && claimers.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
                     {claimers.map((claim) => (
-                      <Card key={claim.id} className="border-0 shadow-md bg-white">
+                      <Card key={claim.id} className="border border-border/50 shadow-sm bg-white/90 backdrop-blur-sm">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">

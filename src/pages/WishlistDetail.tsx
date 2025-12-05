@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { PriceInput } from "@/components/ui/price-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -423,22 +424,22 @@ const WishlistDetail = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="price_min">Min Price</Label>
-                            <Input
+                            <PriceInput
                               id="price_min"
-                              type="number"
-                              step="0.01"
+                              placeholder="0"
                               value={itemFormData.price_min}
-                              onChange={(e) => setItemFormData({ ...itemFormData, price_min: e.target.value })}
+                              onChange={(value) => setItemFormData({ ...itemFormData, price_min: value })}
+                              currencySymbol={getCurrencySymbol(wishlist?.currency || 'NGN')}
                             />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="price_max">Max Price</Label>
-                            <Input
+                            <PriceInput
                               id="price_max"
-                              type="number"
-                              step="0.01"
+                              placeholder="0"
                               value={itemFormData.price_max}
-                              onChange={(e) => setItemFormData({ ...itemFormData, price_max: e.target.value })}
+                              onChange={(value) => setItemFormData({ ...itemFormData, price_max: value })}
+                              currencySymbol={getCurrencySymbol(wishlist?.currency || 'NGN')}
                             />
                           </div>
                         </div>
@@ -791,22 +792,22 @@ const WishlistDetail = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_price_min">Min Price</Label>
-                  <Input
+                  <PriceInput
                     id="edit_price_min"
-                    type="number"
-                    step="0.01"
+                    placeholder="0"
                     value={itemFormData.price_min}
-                    onChange={(e) => setItemFormData({ ...itemFormData, price_min: e.target.value })}
+                    onChange={(value) => setItemFormData({ ...itemFormData, price_min: value })}
+                    currencySymbol={getCurrencySymbol(wishlist?.currency || 'NGN')}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit_price_max">Max Price</Label>
-                  <Input
+                  <PriceInput
                     id="edit_price_max"
-                    type="number"
-                    step="0.01"
+                    placeholder="0"
                     value={itemFormData.price_max}
-                    onChange={(e) => setItemFormData({ ...itemFormData, price_max: e.target.value })}
+                    onChange={(value) => setItemFormData({ ...itemFormData, price_max: value })}
+                    currencySymbol={getCurrencySymbol(wishlist?.currency || 'NGN')}
                   />
                 </div>
               </div>

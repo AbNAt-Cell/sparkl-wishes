@@ -48,11 +48,24 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
+    console.log("Auth header present:", !!authHeader);
+    
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("No valid authorization header provided");
+      return new Response(JSON.stringify({ error: "Unauthorized - no auth header" }), { status: 401, headers: corsHeaders });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    
     const authedClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
-      global: { headers: { Authorization: authHeader ?? "" } },
+      global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: userErr } = await authedClient.auth.getUser();
+    
+    const { data: { user }, error: userErr } = await authedClient.auth.getUser(token);
+    console.log("User lookup result:", { userId: user?.id, error: userErr?.message });
+    
     if (userErr || !user) {
+      console.error("Auth error:", userErr?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 

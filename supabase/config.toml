@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.paystack-webhook]
 verify_jwt = false
+
+[functions.admin-actions]
+verify_jwt = false
+
+[functions.notifications]
+verify_jwt = false

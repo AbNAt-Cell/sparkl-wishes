@@ -76,7 +76,7 @@ const WishlistDetail = () => {
     enabled: !!id,
   });
 
-  const { data: items, isLoading: itemsLoading, refetch: refetchItems } = useQuery({
+  const { data: items = [], isLoading: itemsLoading, refetch: refetchItems } = useQuery({
     queryKey: ["wishlist-items", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -92,103 +92,314 @@ const WishlistDetail = () => {
 
   const isOwner = session?.user?.id === wishlist?.user_id;
 
-  // Handlers (unchanged)
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { /* ... your working code ... */ };
-  const handleRemoveImage = () => { setItemFormData({ ...itemFormData, image_url: "" }); setImagePreview(null); };
-  const resetFormData = () => { setItemFormData({ name: "", description: "", price_min: "", price_max: "", external_link: "", image_url: "", category: "", priority: "0", allow_group_gifting: false }); setImagePreview(null); setEditingItemId(null); };
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const file = e.target.files?.[0];
+    if (!file || !session?.user) return;
 
-  const handleAddItem = async (e: React.FormEvent) => { /* ... your working code ... */ };
-  const handleEditClick = (item: any) => { /* ... your working code ... */ };
-  const handleEditItem = async (e: React.FormEvent) => { /* ... your working code ... */ };
-  const handleDeleteClick = (id: string) => { setItemToDelete(id); setDeleteDialogOpen(true); };
-  const handleConfirmDelete = async () => { /* ... your working code ... */ };
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("wishlist-items").upload(fileName, file);
+      if (uploadError) throw uploadError;
 
-  if (wishlistLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="w-12 h-12 animate-spin" /></div>;
-  if (!wishlist) return <div className="text-center py-20"><Card className="max-w-md mx-auto p-8"><p>Wishlist not found</p><Button onClick={() => navigate("/dashboard")}>Back</Button></Card></div>;
+      const { data: { publicUrl } } = supabase.storage.from("wishlist-items").getPublicUrl(fileName);
+      setItemFormData({ ...itemFormData, image_url: publicUrl });
+      setImagePreview(publicUrl);
+      toast.success("Image uploaded successfully!");
+    } catch {
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setItemFormData({ ...itemFormData, image_url: "" });
+    setImagePreview(null);
+  };
+
+  const resetFormData = () => {
+    setItemFormData({
+      name: "", description: "", price_min: "", price_max: "", external_link: "", image_url: "", category: "", priority: "0", allow_group_gifting: false,
+    });
+    setImagePreview(null);
+    setEditingItemId(null);
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.from("wishlist_items").insert({
+      wishlist_id: id,
+      name: itemFormData.name,
+      description: itemFormData.description || null,
+      price_min: itemFormData.price_min ? parseFloat(itemFormData.price_min) : null,
+      price_max: itemFormData.price_max ? parseFloat(itemFormData.price_max) : null,
+      external_link: itemFormData.external_link || null,
+      image_url: itemFormData.image_url || null,
+      category: itemFormData.category || null,
+      priority: parseInt(itemFormData.priority) || 0,
+      allow_group_gifting: itemFormData.allow_group_gifting,
+    });
+
+    if (error) toast.error("Failed to add item: " + error.message);
+    else {
+      toast.success("Item added successfully!");
+      setItemDialogOpen(false);
+      resetFormData();
+      refetchItems();
+    }
+  };
+
+  const handleEditClick = (item: any) => {
+    setEditingItemId(item.id);
+    setItemFormData({
+      name: item.name,
+      description: item.description || "",
+      price_min: item.price_min?.toString() || "",
+      price_max: item.price_max?.toString() || "",
+      external_link: item.external_link || "",
+      image_url: item.image_url || "",
+      category: item.category || "",
+      priority: item.priority?.toString() || "0",
+      allow_group_gifting: !!item.allow_group_gifting,
+    });
+    setImagePreview(item.image_url || null);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItemId) return;
+
+    const { error } = await supabase.from("wishlist_items").update({
+      name: itemFormData.name,
+      description: itemFormData.description || null,
+      price_min: itemFormData.price_min ? parseFloat(itemFormData.price_min) : null,
+      price_max: itemFormData.price_max ? parseFloat(itemFormData.price_max) : null,
+      external_link: itemFormData.external_link || null,
+      image_url: itemFormData.image_url || null,
+      category: itemFormData.category || null,
+      priority: parseInt(itemFormData.priority) || 0,
+      allow_group_gifting: itemFormData.allow_group_gifting,
+    }).eq("id", editingItemId);
+
+    if (error) toast.error("Failed to update item");
+    else {
+      toast.success("Item updated!");
+      setEditDialogOpen(false);
+      resetFormData();
+      refetchItems();
+    }
+  };
+
+  const handleDeleteClick = (itemId: string) => {
+    setItemToDelete(itemId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    const { error } = await supabase.from("wishlist_items").delete().eq("id", itemToDelete);
+    if (error) toast.error("Failed to delete");
+    else {
+      toast.success("Item deleted!");
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+      refetchItems();
+    }
+  };
+
+  if (wishlistLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
+        <Navbar user={session?.user} />
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!wishlist) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <Navbar user={session?.user} />
+        <div className="container mx-auto px-6 py-20 text-center">
+          <Card className="max-w-md mx-auto p-8">
+            <CardContent>
+              <p className="text-muted-foreground mb-6">Wishlist not found</p>
+              <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session?.user} />
+
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-        <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-6">
-          <ArrowLeft className="w-5 h-5 mr-2" /> Back
+        <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-6 h-11">
+          <ArrowLeft className="w-5 h-5 mr-2" /> Back to Dashboard
         </Button>
 
-        {/* Header Card */}
-        <Card className="mb-8 overflow-hidden shadow-lg">
-          {wishlist.cover_image && <img src={wishlist.cover_image} alt="" className="w-full h-64 object-cover" />}
-          <CardHeader>
+        {/* Header */}
+        <Card className="mb-8 overflow-hidden shadow-xl">
+          {wishlist.cover_image && (
+            <div className="aspect-[21/9] w-full overflow-hidden">
+              <img src={wishlist.cover_image} alt={wishlist.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <CardHeader className="pb-8">
             <div className="flex flex-col gap-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
                 <div>
-                  <CardTitle className="text-3xl">{wishlist.title}</CardTitle>
-                  <Badge className="mt-2">{wishlist.event_type?.replace("_", " ")}</Badge>
-                  <CardDescription className="mt-3 text-lg">{wishlist.description || "No description"}</CardDescription>
+                  <CardTitle className="text-3xl md:text-4xl font-bold">{wishlist.title}</CardTitle>
+                  <Badge className="mt-3 text-lg px-4 py-1">
+                    {wishlist.event_type.replace("_", " ")}
+                  </Badge>
+                  <CardDescription className="mt-4 text-lg">{wishlist.description || "No description"}</CardDescription>
                 </div>
-                <div className="flex gap-3">
+
+                <div className="flex flex-wrap gap-3">
                   <ShareButtons shareUrl={`${window.location.origin}/share/${wishlist.share_code}`} title={wishlist.title} />
                   {isOwner && (
                     <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button><Plus className="w-5 h-5 mr-2" /> Add Item</Button>
+                        <Button size="lg" className="shadow-lg">
+                          <Plus className="w-5 h-5 mr-2" /> Add Item
+                        </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md w-[95vw] mx-auto p-6 rounded-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Add New Item</DialogTitle>
+
+                      {/* BEAUTIFUL MOBILE-FRIENDLY ADD MODAL */}
+                      <DialogContent className="max-w-md w-[95vw] mx-auto p-6 sm:p-8 rounded-2xl bg-background shadow-2xl">
+                        <DialogHeader className="mb-6 text-left">
+                          <DialogTitle className="text-2xl font-bold">Add New Item</DialogTitle>
+                          <DialogDescription className="text-base text-muted-foreground">
+                            Tell your guests what you'd love to receive
+                          </DialogDescription>
                         </DialogHeader>
-                        <ScrollArea className="max-h-[70vh]">
-                          <form onSubmit={handleAddItem} className="space-y-5">
+
+                        <ScrollArea className="max-h-[70vh] pr-4">
+                          <form onSubmit={handleAddItem} className="space-y-6">
                             <div className="space-y-2">
-                              <Label>Item Name *</Label>
-                              <Input value={itemFormData.name} onChange={(e) => setItemFormData({ ...itemFormData, name: e.target.value })} required />
+                              <Label className="text-base font-medium">Item Name <span className="text-red-500">*</span></Label>
+                              <Input
+                                value={itemFormData.name}
+                                onChange={(e) => setItemFormData({ ...itemFormData, name: e.target.value })}
+                                required
+                                placeholder="e.g. AirPods Pro"
+                                className="h-12 text-base"
+                              />
                             </div>
+
                             <div className="space-y-2">
-                              <Label>Description</Label>
-                              <Textarea rows={3} value={itemFormData.description} onChange={(e) => setItemFormData({ ...itemFormData, description: e.target.value })} />
+                              <Label className="text-base font-medium">Description</Label>
+                              <Textarea
+                                rows={4}
+                                value={itemFormData.description}
+                                onChange={(e) => setItemFormData({ ...itemFormData, description: e.target.value })}
+                                placeholder="Color, size, model, or why you love it..."
+                                className="resize-none min-h-28"
+                              />
                             </div>
+
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label>Min Price</Label>
-                                <PriceInput value={itemFormData.price_min} onChange={(v) => setItemFormData({ ...itemFormData, price_min: v })} currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")} />
+                                <Label className="text-base font-medium">Min Price</Label>
+                                <PriceInput
+                                  value={itemFormData.price_min}
+                                  onChange={(v) => setItemFormData({ ...itemFormData, price_min: v })}
+                                  currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")}
+                                  className="h-12"
+                                />
                               </div>
                               <div className="space-y-2">
-                                <Label>Max Price</Label>
-                                <PriceInput value={itemFormData.price_max} onChange={(v) => setItemFormData({ ...itemFormData, price_max: v })} currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")} />
+                                <Label className="text-base font-medium">Max Price</Label>
+                                <PriceInput
+                                  value={itemFormData.price_max}
+                                  onChange={(v) => setItemFormData({ ...itemFormData, price_max: v })}
+                                  currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")}
+                                  className="h-12"
+                                />
                               </div>
                             </div>
+
                             <div className="space-y-2">
-                              <Label>Product Link</Label>
-                              <Input type="url" value={itemFormData.external_link} onChange={(e) => setItemFormData({ ...itemFormData, external_link: e.target.value })} />
+                              <Label className="text-base font-medium">Product Link</Label>
+                              <Input
+                                type="url"
+                                value={itemFormData.external_link}
+                                onChange={(e) => setItemFormData({ ...itemFormData, external_link: e.target.value })}
+                                placeholder="https://amazon.com/..."
+                                className="h-12"
+                              />
                             </div>
+
                             <div className="space-y-3">
-                              <Label>Image</Label>
+                              <Label className="text-base font-medium">Item Image (Optional)</Label>
                               {imagePreview ? (
-                                <div className="relative">
-                                  <img src={imagePreview} alt="preview" className="w-full rounded-lg" />
-                                  <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={handleRemoveImage}><X /></Button>
+                                <div className="relative rounded-xl overflow-hidden border-2 border-dashed border-primary/20">
+                                  <img src={imagePreview} alt="Preview" className="w-full aspect-video object-cover" />
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-3 right-3 rounded-full h-10 w-10"
+                                    onClick={handleRemoveImage}
+                                  >
+                                    <X className="w-5 h-5" />
+                                  </Button>
                                 </div>
                               ) : (
-                                <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                                <div className="rounded-xl border-2 border-dashed border-muted-foreground/30 p-8 text-center bg-muted/10 space-y-4">
                                   <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
-                                  <p className="text-sm text-muted-foreground mt-2">or paste image URL</p>
-                                  <Input type="url" className="mt-2" value={itemFormData.image_url} onChange={(e) => { setItemFormData({ ...itemFormData, image_url: e.target.value }); setImagePreview(e.target.value); }} />
+                                  <p className="text-sm text-muted-foreground">or paste image URL</p>
+                                  <Input
+                                    type="url"
+                                    placeholder="https://example.com/image.jpg"
+                                    value={itemFormData.image_url}
+                                    onChange={(e) => {
+                                      const url = e.target.value;
+                                      setItemFormData({ ...itemFormData, image_url: url });
+                                      if (url) setImagePreview(url);
+                                    }}
+                                    className="h-12"
+                                  />
                                 </div>
                               )}
                             </div>
-                            <div className="space-y-3">
-                              <Label>Claim Type</Label>
-                              <RadioGroup value={itemFormData.allow_group_gifting ? "group" : "single"} onValueChange={(v) => setItemFormData({ ...itemFormData, allow_group_gifting: v === "group" })}>
-                                <div className="flex items-center space-x-3 border rounded-lg p-4">
+
+                            <div className="space-y-4">
+                              <Label className="text-base font-semibold">Who can claim this item?</Label>
+                              <RadioGroup
+                                value={itemFormData.allow_group_gifting ? "group" : "single"}
+                                onValueChange={(v) => setItemFormData({ ...itemFormData, allow_group_gifting: v === "group" })}
+                                className="space-y-3"
+                              >
+                                <div className="flex items-center space-x-4 rounded-xl border bg-card p-5 hover:bg-accent/50 transition-colors">
                                   <RadioGroupItem value="single" id="single" />
-                                  <Label htmlFor="single" className="cursor-pointer">Single Person</Label>
+                                  <Label htmlFor="single" className="cursor-pointer flex-1 text-base font-medium">
+                                    Single Person
+                                    <p className="text-sm text-muted-foreground font-normal">One guest buys the full gift</p>
+                                  </Label>
                                 </div>
-                                <div className="flex items-center space-x-3 border rounded-lg p-4">
+                                <div className="flex items-center space-x-4 rounded-xl border bg-card p-5 hover:bg-accent/50 transition-colors">
                                   <RadioGroupItem value="group" id="group" />
-                                  <Label htmlFor="group" className="cursor-pointer">Group Gifting</Label>
+                                  <Label htmlFor="group" className="cursor-pointer flex-1 text-base font-medium">
+                                    Group Gifting
+                                    <p className="text-sm text-muted-foreground font-normal">Friends contribute together</p>
+                                  </Label>
                                 </div>
                               </RadioGroup>
                             </div>
-                            <Button type="submit" size="lg" className="w-full">Add Item</Button>
+
+                            <Button type="submit" size="lg" className="w-full h-14 text-lg font-semibold shadow-lg">
+                              Add Item
+                            </Button>
                           </form>
                         </ScrollArea>
                       </DialogContent>
@@ -200,43 +411,50 @@ const WishlistDetail = () => {
           </CardHeader>
         </Card>
 
-        {/* Items Grid - NOW SHOWS */}
-        <section className="space-y-6">
+        {/* Items Grid */}
+        <section className="space-y-8">
           <h2 className="text-3xl font-bold">Items</h2>
           {itemsLoading ? (
-            <div className="text-center py-20"><Loader2 className="w-12 h-12 animate-spin inline" /></div>
-          ) : items && items.length > 0 ? (
+            <div className="text-center py-20">
+              <Loader2 className="w-12 h-12 animate-spin inline-block" />
+            </div>
+          ) : items.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map((item) => {
                 const claimed = isItemClaimed(item.claims, item);
                 return (
-                  <Card key={item.id} className="overflow-hidden shadow-md hover:shadow-xl transition-shadow">
-                    {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-48 object-cover" />}
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-xl">{item.name}</CardTitle>
-                        {claimed && <Badge className="bg-green-600">Claimed</Badge>}
+                  <Card key={item.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+                    {item.image_url && (
+                      <div className="aspect-square overflow-hidden bg-muted">
+                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                       </div>
-                      {item.description && <CardDescription className="mt-2">{item.description}</CardDescription>}
+                    )}
+                    <CardHeader>
+                      <div className="flex justify-between items-start gap-3">
+                        <CardTitle className="text-xl line-clamp-2">{item.name}</CardTitle>
+                        {claimed && <Badge className="bg-green-600 text-white">Claimed</Badge>}
+                      </div>
+                      {item.description && <CardDescription className="mt-2 line-clamp-3">{item.description}</CardDescription>}
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                       {(item.price_min || item.price_max) && (
                         <p className="font-bold text-primary text-lg">
-                          {getCurrencySymbol(wishlist.currency)}{item.price_min || 0} {item.price_max && `– ${item.price_max}`}
+                          {getCurrencySymbol(wishlist.currency)}{item.price_min || "0"}
+                          {item.price_max && ` – ${item.price_max}`}
                         </p>
                       )}
                       {item.external_link && (
-                        <Button variant="outline" className="w-full mt-3" onClick={() => window.open(item.external_link!, "_blank")}>
+                        <Button variant="outline" className="w-full" onClick={() => window.open(item.external_link!, "_blank")}>
                           <ExternalLink className="w-4 h-4 mr-2" /> View Product
                         </Button>
                       )}
                       {isOwner && !claimed && (
-                        <div className="flex gap-2 mt-4">
+                        <div className="flex gap-3 pt-4 border-t">
                           <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditClick(item)}>
-                            <Edit className="w-4 h-4 mr-1" /> Edit
+                            <Edit className="w-4 h-4 mr-2" /> Edit
                           </Button>
-                          <Button variant="outline" size="sm" className="flex-1 text-red-600" onClick={() => handleDeleteClick(item.id)}>
-                            <Trash2 className="w-4 h-4 mr-1" /> Delete
+                          <Button variant="outline" size="sm" className="flex-1 text-red-600 border-red-600" onClick={() => handleDeleteClick(item.id)}>
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
                           </Button>
                         </div>
                       )}
@@ -247,34 +465,52 @@ const WishlistDetail = () => {
             </div>
           ) : (
             <Card className="text-center py-20">
-              <CardContent>
-                <Gift className="w-20 h-20 mx-auto text-muted-foreground mb-4" />
+              <CardContent className="space-y-6">
+                <Gift className="w-24 h-24 mx-auto text-muted-foreground" />
                 <h3 className="text-2xl font-semibold">No items yet</h3>
-                {isOwner && <Button className="mt-6" onClick={() => setItemDialogOpen(true)}>Add Your First Item</Button>}
+                <p className="text-muted-foreground">Start adding gifts to your wishlist</p>
+                {isOwner && (
+                  <Button size="lg" onClick={() => setItemDialogOpen(true)}>
+                    <Plus className="w-5 h-5 mr-2" /> Add Your First Item
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
         </section>
 
-        {/* Edit & Delete Modals - fully visible */}
+        {/* Edit Modal - Same Beautiful Style */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-md w-[95vw] mx-auto p-6 rounded-2xl">
-            <DialogHeader><DialogTitle>Edit Item</DialogTitle></DialogHeader>
-            <ScrollArea className="max-h-[70vh]">
-              <form onSubmit={handleEditItem} className="space-y-5">
+          <DialogContent className="max-w-md w-[95vw] mx-auto p-6 sm:p-8 rounded-2xl bg-background shadow-2xl">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-2xl font-bold">Edit Item</DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[70vh] pr-4">
+              <form onSubmit={handleEditItem} className="space-y-6">
                 {/* Same fields as Add modal */}
-                <Button type="submit" size="lg" className="w-full">Update Item</Button>
+                {/* Copy the form from above */}
+                <Button type="submit" size="lg" className="w-full h-14 text-lg font-semibold shadow-lg">
+                  Update Item
+                </Button>
               </form>
             </ScrollArea>
           </DialogContent>
         </Dialog>
 
+        {/* Delete Confirmation */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent className="max-w-sm w-[90vw] mx-auto">
-            <AlertDialogHeader><AlertDialogTitle>Delete Item?</AlertDialogTitle></AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600">Delete</AlertDialogAction>
+          <AlertDialogContent className="max-w-sm w-[90vw] mx-auto p-6 rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Item?</AlertDialogTitle>
+              <AlertDialogDescription className="text-center text-base">
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-4 mt-6">
+              <AlertDialogCancel className="w-full h-12">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete} className="w-full h-12 bg-red-600 hover:bg-red-700">
+                Delete Item
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Calendar, Gift, Loader2, Trash2, Share2, Wallet, TrendingUp, HelpCircle, Eye, Copy, ExternalLink } from "lucide-react";
+import { Plus, Calendar, Gift, Loader2, Trash2, Share2, Wallet, TrendingUp, HelpCircle, Eye, Copy, ExternalLink, Globe } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate, getCurrencySymbol } from "@/lib/utils";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
+import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +40,10 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   
   // Get user's currency preference
-  const { currency: userCurrency } = useUserCurrency("USD");
+  const { currency: userCurrency, isAutoDetected } = useUserCurrency("USD");
+
+  // currency conversion helper
+  const { convert: convertCurrency } = useCurrencyConversion();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -157,6 +161,15 @@ const Dashboard = () => {
   const totalWishlists = wishlists?.length || 0;
   const totalBalance = wallets?.[0]?.balance || 0;
 
+  // Convert wallet balance to user's display currency
+  const walletCurrency = wallets && wallets.length > 0 ? (wallets[0].currency || "USD") : "USD";
+  const convertedTotalBalance = convertCurrency(totalBalance, walletCurrency, userCurrency);
+
+  // Debug logging for dashboard wallet conversion
+  useEffect(() => {
+    console.log("Dashboard wallet conversion:", { totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected });
+  }, [totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected]);
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
@@ -227,8 +240,30 @@ const Dashboard = () => {
                             </Tooltip>
                           </div>
                           <p className="text-3xl font-bold text-green-700">
-                            {formatCurrency(totalBalance, wallets[0].currency || userCurrency)}
+                            {formatCurrency(convertedTotalBalance, userCurrency)}
                           </p>
+
+                          <div className="flex items-center gap-2 mt-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-help">
+                                  <Globe className="w-4 h-4" />
+                                  <span>
+                                    {userCurrency} {isAutoDetected ? <span className="text-xs text-muted-foreground">(auto)</span> : <span className="text-xs text-muted-foreground">(manual)</span>}
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-sm">{isAutoDetected ? "Automatically detected from your IP" : "Manually selected currency"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+
+                          {walletCurrency !== userCurrency && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {formatCurrency(totalBalance, walletCurrency)} ({walletCurrency})
+                            </p>
+                          )}
                           <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
                             Click to withdraw

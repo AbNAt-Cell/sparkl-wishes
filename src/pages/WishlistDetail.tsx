@@ -201,14 +201,6 @@ const WishlistDetail = () => {
     }
   };
 
-  if (wishlistLoading || itemsLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
-        <Navbar user={session?.user} />
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   if (!wishlist) {
     return (
@@ -254,7 +246,7 @@ const WishlistDetail = () => {
                     </DialogTrigger>
 
                     {/* FULL-WIDTH, VISIBLE ADD ITEM MODAL */}
-                    <DialogContent className="w-[95vw] max-h-[90vh] sm:max-w-2xl mx-auto p-2 sm:p-6 rounded-3xl overflow-y-auto">
+                    <DialogContent className="w-[95vw] min-h-[90vh] max-h-[90vh] sm:max-w-2xl mx-auto p-2 sm:p-6 rounded-3xl overflow-y-auto">
                       <Card className="shadow-elegant">
                         <CardHeader>
                           <CardTitle className="text-3xl">Add New Item</CardTitle>

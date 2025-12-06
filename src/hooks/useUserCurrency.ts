@@ -87,6 +87,7 @@ export const useUserCurrency = (fallbackCurrency: string = "USD") => {
         // Check if user has manually selected a currency
         const manualCurrency = localStorage.getItem(STORAGE_KEY);
         if (manualCurrency) {
+          console.log("Using manually selected currency:", manualCurrency);
           setCurrency(manualCurrency);
           setIsAutoDetected(false);
           setIsLoading(false);
@@ -96,23 +97,53 @@ export const useUserCurrency = (fallbackCurrency: string = "USD") => {
         // Check for cached auto-detected currency
         const cachedDetected = localStorage.getItem(DETECTED_KEY);
         if (cachedDetected) {
+          console.log("Using cached detected currency:", cachedDetected);
           setCurrency(cachedDetected);
           setIsLoading(false);
           return;
         }
 
-        // Use ipapi.co for free IP geolocation
-        const response = await fetch("https://ipapi.co/json/");
-        if (!response.ok) throw new Error("Failed to fetch location");
+        // Try multiple IP detection services with fallback
+        let detectedCurrency = fallbackCurrency;
+        let detected = false;
+
+        try {
+          // Primary: ipapi.co
+          console.log("Attempting IP detection via ipapi.co");
+          const response = await fetch("https://ipapi.co/json/", { timeout: 5000 });
+          if (response.ok) {
+            const data: GeoData = await response.json();
+            console.log("IP Detection result:", data);
+            detectedCurrency = data.currency || countryCurrencyMap[data.country_code] || fallbackCurrency;
+            detected = true;
+          }
+        } catch (e) {
+          console.warn("ipapi.co failed, trying alternative service:", e);
+          try {
+            // Fallback: ip-api.com
+            const response = await fetch("https://ip-api.com/json/?fields=countryCode,currency", { timeout: 5000 });
+            if (response.ok) {
+              const data: any = await response.json();
+              console.log("IP Detection result (fallback):", data);
+              detectedCurrency = data.currency || countryCurrencyMap[data.countryCode] || fallbackCurrency;
+              detected = true;
+            }
+          } catch (e2) {
+            console.warn("Fallback IP detection also failed:", e2);
+          }
+        }
+
+        // Cache the detected result (whether successful or using fallback)
+        if (detected) {
+          console.log("Caching detected currency:", detectedCurrency);
+          localStorage.setItem(DETECTED_KEY, detectedCurrency);
+        } else {
+          console.log("Using fallback currency:", detectedCurrency);
+        }
         
-        const data: GeoData = await response.json();
-        const detectedCurrency = data.currency || countryCurrencyMap[data.country_code] || fallbackCurrency;
-        
-        // Cache the detected result
-        localStorage.setItem(DETECTED_KEY, detectedCurrency);
         setCurrency(detectedCurrency);
       } catch (error) {
-        console.warn("Could not detect currency from IP:", error);
+        console.warn("Unexpected error in currency detection:", error);
         setCurrency(fallbackCurrency);
       } finally {
         setIsLoading(false);
@@ -123,16 +154,22 @@ export const useUserCurrency = (fallbackCurrency: string = "USD") => {
   }, [fallbackCurrency]);
 
   const setCurrencyManually = useCallback((newCurrency: string) => {
+    console.log("Setting currency manually to:", newCurrency);
     localStorage.setItem(STORAGE_KEY, newCurrency);
     setCurrency(newCurrency);
     setIsAutoDetected(false);
   }, []);
 
   const resetToAutoDetected = useCallback(() => {
+    console.log("Resetting to auto-detected currency");
     localStorage.removeItem(STORAGE_KEY);
     const detected = localStorage.getItem(DETECTED_KEY);
     if (detected) {
+      console.log("Resetting to cached:", detected);
       setCurrency(detected);
+    } else {
+      console.log("No cached currency, using fallback");
+      setCurrency("USD");
     }
     setIsAutoDetected(true);
   }, []);

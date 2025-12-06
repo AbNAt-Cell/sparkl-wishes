@@ -92,11 +92,28 @@ const Wallet = () => {
   });
 
   // Use wallet currency if set, otherwise use detected/selected currency
-  const displayCurrency = wallet?.currency || detectedCurrency;
+  const displayCurrency = detectedCurrency;
   
   // Convert wallet balance to display currency
+  // Wallet is always stored in its own currency (default USD)
   const walletCurrency = wallet?.currency || "USD";
-  const convertedBalance = wallet ? convertCurrency(wallet.balance, walletCurrency, displayCurrency) : 0;
+  
+  // Always convert, even if wallet is null (use 0)
+  const walletBalance = wallet?.balance || 0;
+  const convertedBalance = convertCurrency(walletBalance, walletCurrency, displayCurrency);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("Wallet conversion state:", {
+      walletExists: !!wallet,
+      walletBalance,
+      walletCurrency,
+      displayCurrency,
+      convertedBalance,
+      detectedCurrency,
+      isAutoDetected,
+    });
+  }, [wallet, walletBalance, walletCurrency, displayCurrency, convertedBalance, detectedCurrency, isAutoDetected]);
 
   const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ["wallet-transactions", wallet?.id],
@@ -229,13 +246,13 @@ const Wallet = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-4xl font-bold text-primary">
-                    {formatCurrency(convertedBalance, displayCurrency, false)}
+                    {convertedBalance > 0 ? formatCurrency(convertedBalance, displayCurrency, false) : formatCurrency(0, displayCurrency, false)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {displayCurrency}
                     {wallet?.currency && wallet.currency !== displayCurrency && (
                       <span className="ml-2 text-xs">
-                        (Original: {formatCurrency(wallet.balance, wallet.currency, false)})
+                        Original: {formatCurrency(wallet.balance, wallet.currency, false)}
                       </span>
                     )}
                   </p>

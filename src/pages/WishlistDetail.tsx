@@ -254,7 +254,7 @@ const WishlistDetail = () => {
                     </DialogTrigger>
 
                     {/* FULL-WIDTH, VISIBLE ADD ITEM MODAL */}
-                    <DialogContent className="w-[95vw] h-[90vh] sm:h-auto sm:max-w-2xl mx-auto p-2 sm:p-10 rounded-3xl overflow-hidden sm:overflow-y-auto">
+                    <DialogContent className="w-[95vw] max-h-[90vh] sm:max-w-2xl mx-auto p-2 sm:p-6 rounded-3xl overflow-y-auto">
                       <Card className="shadow-elegant">
                         <CardHeader>
                           <CardTitle className="text-3xl">Add New Item</CardTitle>

@@ -12,6 +12,8 @@ import { Loader2, Wallet as WalletIcon, ArrowDownToLine, Clock, CheckCircle, XCi
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
+import { CurrencySelector } from "@/components/CurrencySelector";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -40,8 +42,8 @@ const Wallet = () => {
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
   
-  // Detect user's currency based on IP
-  const { currency: detectedCurrency } = useUserCurrency("USD");
+  // Detect user's currency based on IP with manual override support
+  const { currency: detectedCurrency, isAutoDetected, setCurrency: setUserCurrency, resetToAutoDetected } = useUserCurrency("USD");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -84,6 +86,9 @@ const Wallet = () => {
     },
     enabled: !!session?.user?.id,
   });
+
+  // Use wallet currency if set, otherwise use detected/selected currency
+  const displayCurrency = wallet?.currency || detectedCurrency;
 
   const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ["wallet-transactions", wallet?.id],
@@ -183,47 +188,56 @@ const Wallet = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <h1 className="text-3xl font-bold mb-8">My Wallet</h1>
+    <TooltipProvider>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">My Wallet</h1>
+            <CurrencySelector
+              value={detectedCurrency}
+              onChange={setUserCurrency}
+              isAutoDetected={isAutoDetected}
+              onReset={resetToAutoDetected}
+            />
+          </div>
 
-        {/* Wallet Balance Card */}
-        <Card className="mb-8 border-primary/20 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                  <WalletIcon className="w-6 h-6 text-primary" />
+          {/* Wallet Balance Card */}
+          <Card className="mb-8 border-primary/20 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <WalletIcon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>Available Balance</CardTitle>
+                    <CardDescription>Your current wallet balance</CardDescription>
+                  </div>
                 </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Available Balance</CardTitle>
-                  <CardDescription>Your current wallet balance</CardDescription>
+                  <p className="text-4xl font-bold text-primary">
+                    {wallet ? formatCurrency(wallet.balance, displayCurrency, false) : formatCurrency(0, displayCurrency, false)}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {displayCurrency}
+                  </p>
                 </div>
+                <Button
+                  onClick={() => setWithdrawDialogOpen(true)}
+                  disabled={!wallet || wallet.balance <= 0}
+                  className="gap-2"
+                >
+                  <ArrowDownToLine className="w-4 h-4" />
+                  Request Withdrawal
+                </Button>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-4xl font-bold text-primary">
-                  {wallet ? formatCurrency(wallet.balance, wallet.currency || detectedCurrency, false) : formatCurrency(0, detectedCurrency, false)}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {wallet?.currency || detectedCurrency}
-                </p>
-              </div>
-              <Button
-                onClick={() => setWithdrawDialogOpen(true)}
-                disabled={!wallet || wallet.balance <= 0}
-                className="gap-2"
-              >
-                <ArrowDownToLine className="w-4 h-4" />
-                Request Withdrawal
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
         {/* Withdrawal Requests */}
         {withdrawalRequests && withdrawalRequests.length > 0 && (
@@ -407,7 +421,8 @@ const Wallet = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
 

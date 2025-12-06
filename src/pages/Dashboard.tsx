@@ -18,6 +18,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate, getCurrencySymbol } from "@/lib/utils";
+import { useUserCurrency } from "@/hooks/useUserCurrency";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,9 @@ const Dashboard = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [wishlistToDelete, setWishlistToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  
+  // Get user's currency preference
+  const { currency: userCurrency } = useUserCurrency("USD");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -223,7 +227,7 @@ const Dashboard = () => {
                             </Tooltip>
                           </div>
                           <p className="text-3xl font-bold text-green-700">
-                            {formatCurrency(totalBalance, wallets[0].currency)}
+                            {formatCurrency(totalBalance, wallets[0].currency || userCurrency)}
                           </p>
                           <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />

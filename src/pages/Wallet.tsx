@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Wallet as WalletIcon, ArrowDownToLine, Clock, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useUserCurrency } from "@/hooks/useUserCurrency";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,9 @@ const Wallet = () => {
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
+  
+  // Detect user's currency based on IP
+  const { currency: detectedCurrency } = useUserCurrency("USD");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -203,10 +207,10 @@ const Wallet = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-4xl font-bold text-primary">
-                  {wallet ? formatCurrency(wallet.balance, wallet.currency, false) : formatCurrency(0, "USD", false)}
+                  {wallet ? formatCurrency(wallet.balance, wallet.currency || detectedCurrency, false) : formatCurrency(0, detectedCurrency, false)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {wallet ? wallet.currency : "USD"}
+                  {wallet?.currency || detectedCurrency}
                 </p>
               </div>
               <Button
@@ -235,7 +239,7 @@ const Wallet = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <p className="font-semibold">
-                          {formatCurrency(request.amount, wallet?.currency || "USD", false)}
+                          {formatCurrency(request.amount, wallet?.currency || detectedCurrency, false)}
                         </p>
                         <Badge className={statusColors[request.status as keyof typeof statusColors]}>
                           {request.status}
@@ -313,7 +317,7 @@ const Wallet = () => {
                             }`}
                           >
                             {transaction.type === "credit" ? "+" : "-"}
-                            {formatCurrency(transaction.amount, wallet?.currency || "USD", false)}
+                            {formatCurrency(transaction.amount, wallet?.currency || detectedCurrency, false)}
                           </span>
                         </TableCell>
                       </TableRow>
@@ -360,7 +364,7 @@ const Wallet = () => {
               </div>
               {wallet && (
                 <p className="text-xs text-muted-foreground">
-                  Available: {formatCurrency(wallet.balance, wallet.currency, false)}
+                  Available: {formatCurrency(wallet.balance, wallet.currency || detectedCurrency, false)}
                 </p>
               )}
             </div>

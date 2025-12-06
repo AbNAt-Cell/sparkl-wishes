@@ -108,25 +108,37 @@ export const useUserCurrency = (fallbackCurrency: string = "USD") => {
         let detected = false;
 
         try {
-          // Primary: ipapi.co
+          // Primary: ipapi.co with AbortController timeout
           console.log("Attempting IP detection via ipapi.co");
-          const response = await fetch("https://ipapi.co/json/", { timeout: 5000 });
-          if (response.ok) {
-            const data: GeoData = await response.json();
-            console.log("IP Detection result:", data);
-            detectedCurrency = data.currency || countryCurrencyMap[data.country_code] || fallbackCurrency;
-            detected = true;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          try {
+            const response = await fetch("https://ipapi.co/json/", { signal: controller.signal });
+            if (response.ok) {
+              const data: GeoData = await response.json();
+              console.log("IP Detection result:", data);
+              detectedCurrency = data.currency || countryCurrencyMap[data.country_code] || fallbackCurrency;
+              detected = true;
+            }
+          } finally {
+            clearTimeout(timeoutId);
           }
         } catch (e) {
           console.warn("ipapi.co failed, trying alternative service:", e);
           try {
-            // Fallback: ip-api.com
-            const response = await fetch("https://ip-api.com/json/?fields=countryCode,currency", { timeout: 5000 });
-            if (response.ok) {
-              const data: any = await response.json();
-              console.log("IP Detection result (fallback):", data);
-              detectedCurrency = data.currency || countryCurrencyMap[data.countryCode] || fallbackCurrency;
-              detected = true;
+            // Fallback: ip-api.com with AbortController
+            const controller2 = new AbortController();
+            const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
+            try {
+              const response = await fetch("https://ip-api.com/json/?fields=countryCode,currency", { signal: controller2.signal });
+              if (response.ok) {
+                const data: any = await response.json();
+                console.log("IP Detection result (fallback):", data);
+                detectedCurrency = data.currency || countryCurrencyMap[data.countryCode] || fallbackCurrency;
+                detected = true;
+              }
+            } finally {
+              clearTimeout(timeoutId2);
             }
           } catch (e2) {
             console.warn("Fallback IP detection also failed:", e2);

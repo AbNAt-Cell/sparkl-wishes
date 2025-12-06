@@ -92,31 +92,36 @@ export const useCurrencyConversion = () => {
    * Convert an amount from one currency to another
    */
   const convert = (amount: number, fromCurrency: string, toCurrency: string): number => {
-    console.log(`Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
-    
-    if (fromCurrency === toCurrency) {
-      console.log(`Same currency, returning ${amount}`);
+    try {
+      console.log(`Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
+
+      if (fromCurrency === toCurrency) {
+        console.log(`Same currency, returning ${amount}`);
+        return amount;
+      }
+
+      const fromRate = rates[fromCurrency];
+      const toRate = rates[toCurrency];
+
+      console.log(`Rates - From: ${fromCurrency}=${fromRate}, To: ${toCurrency}=${toRate}`);
+
+      if (!fromRate || !toRate) {
+        console.warn(
+          `Exchange rate not found for ${fromCurrency} or ${toCurrency}, returning original amount`
+        );
+        return amount;
+      }
+
+      // Convert to USD first, then to target currency
+      const amountInUSD = amount / fromRate;
+      const convertedAmount = amountInUSD * toRate;
+
+      console.log(`Converted amount: ${convertedAmount}`);
+      return Math.round(convertedAmount * 100) / 100; // Round to 2 decimal places
+    } catch (err) {
+      console.error("Error during currency conversion:", err);
       return amount;
     }
-
-    const fromRate = rates[fromCurrency];
-    const toRate = rates[toCurrency];
-
-    console.log(`Rates - From: ${fromCurrency}=${fromRate}, To: ${toCurrency}=${toRate}`);
-
-    if (!fromRate || !toRate) {
-      console.warn(
-        `Exchange rate not found for ${fromCurrency} or ${toCurrency}, returning original amount`
-      );
-      return amount;
-    }
-
-    // Convert to USD first, then to target currency
-    const amountInUSD = amount / fromRate;
-    const convertedAmount = amountInUSD * toRate;
-
-    console.log(`Converted amount: ${convertedAmount}`);
-    return Math.round(convertedAmount * 100) / 100; // Round to 2 decimal places
   };
 
   /**

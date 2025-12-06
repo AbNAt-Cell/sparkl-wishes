@@ -12,6 +12,7 @@ import { Loader2, Wallet as WalletIcon, ArrowDownToLine, Clock, CheckCircle, XCi
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
+import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
@@ -44,6 +45,9 @@ const Wallet = () => {
   
   // Detect user's currency based on IP with manual override support
   const { currency: detectedCurrency, isAutoDetected, setCurrency: setUserCurrency, resetToAutoDetected } = useUserCurrency("USD");
+  
+  // Get currency conversion function
+  const { convert: convertCurrency } = useCurrencyConversion();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -89,6 +93,10 @@ const Wallet = () => {
 
   // Use wallet currency if set, otherwise use detected/selected currency
   const displayCurrency = wallet?.currency || detectedCurrency;
+  
+  // Convert wallet balance to display currency
+  const walletCurrency = wallet?.currency || "USD";
+  const convertedBalance = wallet ? convertCurrency(wallet.balance, walletCurrency, displayCurrency) : 0;
 
   const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ["wallet-transactions", wallet?.id],
@@ -221,10 +229,15 @@ const Wallet = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-4xl font-bold text-primary">
-                    {wallet ? formatCurrency(wallet.balance, displayCurrency, false) : formatCurrency(0, displayCurrency, false)}
+                    {formatCurrency(convertedBalance, displayCurrency, false)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {displayCurrency}
+                    {wallet?.currency && wallet.currency !== displayCurrency && (
+                      <span className="ml-2 text-xs">
+                        (Original: {formatCurrency(wallet.balance, wallet.currency, false)})
+                      </span>
+                    )}
                   </p>
                 </div>
                 <Button

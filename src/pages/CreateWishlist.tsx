@@ -45,11 +45,45 @@ const CreateWishlist = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const ensureProfileExists = async (userId: string, user: Session['user']) => {
+    // Check if profile exists
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      // Create profile if it doesn't exist
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          avatar_url: user.user_metadata?.avatar_url || null,
+        });
+
+      if (profileError) {
+        console.error("Failed to create profile:", profileError);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user?.id) return;
 
     setIsLoading(true);
+
+    // Ensure profile exists before creating wishlist
+    const profileExists = await ensureProfileExists(session.user.id, session.user);
+    if (!profileExists) {
+      toast.error("Failed to set up your profile. Please try again.");
+      setIsLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("wishlists")

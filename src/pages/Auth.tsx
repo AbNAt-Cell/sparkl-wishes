@@ -37,7 +37,7 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -50,7 +50,12 @@ const Auth = () => {
 
     if (error) {
       toast.error(error.message);
-    } else {
+    } else if (data.session) {
+      // Auto-login: user is logged in immediately (email confirmation disabled)
+      toast.success("Account created successfully!");
+      navigate("/dashboard");
+    } else if (data.user && !data.session) {
+      // Email confirmation is enabled
       toast.success("Account created! Please check your email to verify.");
     }
   };

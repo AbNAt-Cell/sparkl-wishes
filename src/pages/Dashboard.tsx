@@ -155,17 +155,6 @@ const Dashboard = () => {
     other: "bg-muted text-muted-foreground border-muted",
   };
 
-  if (session === null) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-        <Navbar />
-        <div className="container mx-auto px-4 lg:px-6 py-6 flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
-
   // Calculate stats
   const totalWishlists = wishlists?.length || 0;
   const totalBalance = wallets?.[0]?.balance || 0;
@@ -178,6 +167,17 @@ const Dashboard = () => {
   useEffect(() => {
     console.log("Dashboard wallet conversion:", { totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected });
   }, [totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected]);
+
+  if (session === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <Navbar />
+        <div className="container mx-auto px-4 lg:px-6 py-6 flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>

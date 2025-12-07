@@ -3,10 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Gift, Heart, Share2, Sparkles, Check } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Gift, Heart, Share2, Sparkles, Star, ArrowRight, Calendar, Eye } from "lucide-react";
 import heroImage from "@/assets/hero-celebration.jpg";
+import { formatDate } from "@/lib/utils";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -26,6 +30,23 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Fetch featured wishlists for homepage
+  const { data: featuredWishlists } = useQuery({
+    queryKey: ["featured-wishlists-home"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wishlists")
+        .select("*, profiles(full_name)")
+        .eq("is_featured", true)
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const features = [
     {
       icon: Gift,
@@ -43,6 +64,15 @@ const Index = () => {
       description: "Guests can claim items to avoid duplicate gifts"
     },
   ];
+
+  const eventTypeColors: Record<string, string> = {
+    wedding: "bg-primary/10 text-primary border-primary/20",
+    birthday: "bg-secondary/10 text-secondary border-secondary/20",
+    anniversary: "bg-accent/10 text-accent border-accent/20",
+    baby_shower: "bg-pink-100 text-pink-700 border-pink-200",
+    graduation: "bg-blue-100 text-blue-700 border-blue-200",
+    other: "bg-muted text-muted-foreground border-muted",
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,6 +137,91 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Featured Wishlists Section */}
+      {featuredWishlists && featuredWishlists.length > 0 && (
+        <section className="py-16 bg-gradient-to-b from-muted/20 to-background">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+                  Featured Wishlists
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                  Discover amazing wishlists from our community
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/featured")}
+                className="hidden md:flex"
+              >
+                View All
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {featuredWishlists.slice(0, 6).map((wishlist) => (
+                <Card 
+                  key={wishlist.id}
+                  className="group cursor-pointer hover:shadow-elegant transition-all duration-300 overflow-hidden"
+                  onClick={() => navigate(`/share/${wishlist.share_code}`)}
+                >
+                  {wishlist.cover_image && (
+                    <div className="h-36 overflow-hidden">
+                      <img 
+                        src={wishlist.cover_image} 
+                        alt={wishlist.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-1">
+                          {wishlist.title}
+                        </CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {wishlist.description || "A beautiful wishlist"}
+                        </CardDescription>
+                      </div>
+                      <Badge className={eventTypeColors[wishlist.event_type] || eventTypeColors.other}>
+                        {wishlist.event_type.replace("_", " ")}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>
+                        By {(wishlist.profiles as any)?.full_name || "Anonymous"}
+                      </span>
+                      {wishlist.event_date && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {formatDate(wishlist.event_date)}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center md:hidden">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/featured")}
+              >
+                View All Featured Wishlists
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-20 bg-gradient-to-b from-background to-muted/20">

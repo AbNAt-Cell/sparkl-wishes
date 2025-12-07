@@ -5,6 +5,7 @@ type SetUserFlagsPayload = {
   userId: string;
   isBanned?: boolean;
   isAdmin?: boolean;
+  isPremium?: boolean;
 };
 
 type UpdateClaimPayload = {
@@ -85,10 +86,11 @@ serve(async (req) => {
     const body = (await req.json()) as RequestBody;
 
     if (body.action === "set_user_flags") {
-      const { userId, isBanned, isAdmin } = body.payload;
+      const { userId, isBanned, isAdmin, isPremium } = body.payload;
       const updates: Record<string, unknown> = {};
       if (typeof isBanned === "boolean") updates.is_banned = isBanned;
       if (typeof isAdmin === "boolean") updates.is_admin = isAdmin;
+      if (typeof isPremium === "boolean") updates.is_premium = isPremium;
 
       if (Object.keys(updates).length === 0) {
         return new Response(JSON.stringify({ error: "No updates provided" }), { status: 400, headers: corsHeaders });

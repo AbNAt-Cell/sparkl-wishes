@@ -15,6 +15,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import WishlistDetail from "./pages/WishlistDetail";
 import SharedWishlist from "./pages/SharedWishlist";
+import FeaturedWishlists from "./pages/FeaturedWishlists";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/Layout";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -46,6 +47,7 @@ const App = () => (
           <Route path="/terms" element={<Terms />} />
           <Route path="/wishlist/:id" element={<WishlistDetail />} />
           <Route path="/share/:shareCode" element={<SharedWishlist />} />
+          <Route path="/featured" element={<FeaturedWishlists />} />
           <Route
             path="/admin"
             element={

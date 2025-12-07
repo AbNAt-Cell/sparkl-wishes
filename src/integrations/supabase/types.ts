@@ -216,6 +216,7 @@ export type Database = {
           id: string
           is_admin: boolean | null
           is_banned: boolean | null
+          is_premium: boolean | null
           updated_at: string
         }
         Insert: {
@@ -226,6 +227,7 @@ export type Database = {
           id: string
           is_admin?: boolean | null
           is_banned?: boolean | null
+          is_premium?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -236,6 +238,7 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           is_banned?: boolean | null
+          is_premium?: boolean | null
           updated_at?: string
         }
         Relationships: []
@@ -441,6 +444,7 @@ export type Database = {
           event_date: string | null
           event_type: string
           id: string
+          is_featured: boolean | null
           is_public: boolean | null
           share_code: string
           title: string
@@ -455,6 +459,7 @@ export type Database = {
           event_date?: string | null
           event_type: string
           id?: string
+          is_featured?: boolean | null
           is_public?: boolean | null
           share_code?: string
           title: string
@@ -469,6 +474,7 @@ export type Database = {
           event_date?: string | null
           event_type?: string
           id?: string
+          is_featured?: boolean | null
           is_public?: boolean | null
           share_code?: string
           title?: string

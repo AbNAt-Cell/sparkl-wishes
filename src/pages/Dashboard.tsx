@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import Navbar from "@/components/Navbar";
-import ErrorBoundary from "@/components/ErrorBoundary";
 import { ShareButtons } from "@/components/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,13 +181,12 @@ const Dashboard = () => {
 
   return (
     <TooltipProvider>
-      <ErrorBoundary>
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-          <Navbar user={session.user} />
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <Navbar user={session.user} />
 
-          <main className="container mx-auto px-4 lg:px-6 py-6">
-            <div className="space-y-6">
-              {/* Header Section with Stats */}
+        <main className="container mx-auto px-4 lg:px-6 py-6">
+          <div className="space-y-6">
+            {/* Header Section with Stats */}
             <div className="space-y-4">
               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                 <div>
@@ -580,6 +578,7 @@ const Dashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </ErrorBoundary>
     </TooltipProvider>
   );
 };

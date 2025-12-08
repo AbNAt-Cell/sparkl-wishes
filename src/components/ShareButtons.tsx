@@ -87,7 +87,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title }) =
 
       <DialogContent className="w-[92vw] max-w-lg mx-auto max-h-[92vh] overflow-y-auto rounded-3xl p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-center justify-center">
+          <DialogTitle className="flex items-center justify-center gap-3 text-2xl font-bold">
             <Share2 className="w-7 h-7 text-purple-600" />
             Share Wishlist
           </DialogTitle>
@@ -95,23 +95,38 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title }) =
 
         <div className="grid gap-8 py-6">
 
-          {/* Social Buttons – perfect 2×2 grid */}
+          {/* Social Buttons – Perfectly centered icon + text */}
           <div className="grid grid-cols-2 gap-4">
-            <Button className="h-16 bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <MessageCircle className="w-8 h-7 mr-4" />
-              WhatsApp
+            <Button
+              onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer")}
+              className="h-16 bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold text-lg rounded-2xl shadow-lg flex items-center justify-center gap-3"
+            >
+              <MessageCircle className="w-8 h-8" />
+              <span>WhatsApp</span>
             </Button>
-            <Button className="h-16 bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <Facebook className="w-8 h-7 mr-4" />
-              Facebook
+
+            <Button
+              onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank")}
+              className="h-16 bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold text-lg rounded-2xl shadow-lg flex items-center justify-center gap-3"
+            >
+              <Facebook className="w-8 h-8" />
+              <span>Facebook</span>
             </Button>
-            <Button className="h-16 bg-black hover:bg-gray-800 text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <X className="w-8 h-7 mr-4" />
-              X (Twitter)
+
+            <Button
+              onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent("Hi, kindly buy me something on my wishlist\n\n" + title)}&url=${encodeURIComponent(shareUrl)}`, "_blank")}
+              className="h-16 bg-black hover:bg-gray-800 text-white font-semibold text-lg rounded-2xl shadow-lg flex items-center justify-center gap-3"
+            >
+              <X className="w-8 h-8" />
+              <span>X (Twitter)</span>
             </Button>
-            <Button className="h-16 bg-gray-700 hover:bg-gray-900 text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <Mail className="w-6 h-7 mr-4" />
-              Email
+
+            <Button
+              onClick={() => { window.location.href = `mailto:?subject=${encodeURIComponent("My Wishlist: " + title)}&body=${encodeURIComponent(shareText)}`; }}
+              className="h-16 bg-gray-700 hover:bg-gray-900 text-white font-semibold text-lg rounded-2xl shadow-lg flex items-center justify-center gap-3"
+            >
+              <Mail className="w-8 h-8" />
+              <span>Email</span>
             </Button>
           </div>
 

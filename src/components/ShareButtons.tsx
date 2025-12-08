@@ -98,19 +98,19 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title }) =
           {/* Social Buttons – perfect 2×2 grid */}
           <div className="grid grid-cols-2 gap-4">
             <Button className="h-16 bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <MessageCircle className="w-7 h-7 mr-4" />
+              <MessageCircle className="w-8 h-7 mr-4" />
               WhatsApp
             </Button>
             <Button className="h-16 bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <Facebook className="w-7 h-7 mr-4" />
+              <Facebook className="w-8 h-7 mr-4" />
               Facebook
             </Button>
             <Button className="h-16 bg-black hover:bg-gray-800 text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <X className="w-7 h-7 mr-4" />
+              <X className="w-8 h-7 mr-4" />
               X (Twitter)
             </Button>
             <Button className="h-16 bg-gray-700 hover:bg-gray-900 text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
-              <Mail className="w-7 h-7 mr-4" />
+              <Mail className="w-6 h-7 mr-4" />
               Email
             </Button>
           </div>

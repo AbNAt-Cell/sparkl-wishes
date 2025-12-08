@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Calendar, Gift, Loader2, Trash2, Share2, Wallet, TrendingUp, HelpCircle, Eye, Copy, ExternalLink, Globe } from "lucide-react";
+import { Plus, Calendar, Gift, Loader2, Trash2, Share2, Wallet, TrendingUp, HelpCircle, Eye, Copy, ExternalLink, Globe, Crown } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate, getCurrencySymbol } from "@/lib/utils";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
 import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
+import { useAppSettings } from "@/lib/settings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,6 +95,25 @@ const Dashboard = () => {
     },
     enabled: !!session?.user?.id,
   });
+
+  // Fetch user profile for premium status
+  const { data: profile } = useQuery({
+    queryKey: ["user-profile", session?.user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_premium")
+        .eq("id", session!.user!.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
+
+  // Fetch app settings for premium pricing
+  const { data: appSettings } = useAppSettings();
 
   // Fetch claimers for user's wishlist items
   const { data: claimers } = useQuery({
@@ -214,7 +234,7 @@ const Dashboard = () => {
               </div>
 
               {/* Quick Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="border border-border/50 shadow-sm bg-white/80 backdrop-blur-sm">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between">
@@ -282,6 +302,55 @@ const Dashboard = () => {
                       </div>
                     </CardContent>
                   </Card>
+                )}
+
+                {/* Premium Status / Go Premium Card */}
+                {appSettings?.premium?.enabled && (
+                  profile?.is_premium ? (
+                    <Card className="border border-amber-200 shadow-sm bg-gradient-to-br from-amber-50/80 to-yellow-50/80 backdrop-blur-sm">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-medium text-amber-700">Premium Member</p>
+                              <Badge className="bg-amber-500 text-white text-xs">Active</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Your wishlists can be featured on the homepage
+                            </p>
+                          </div>
+                          <Crown className="w-10 h-10 text-amber-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="border border-border/50 shadow-sm bg-gradient-to-br from-purple-50/80 to-pink-50/80 backdrop-blur-sm">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-medium text-purple-700">Go Premium</p>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              Get your wishlists featured on the homepage
+                            </p>
+                            <p className="text-lg font-bold text-purple-700 mb-2">
+                              {formatCurrency(appSettings.premium.price, appSettings.premium.currency)}
+                            </p>
+                            <Button 
+                              size="sm"
+                              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                              onClick={() => toast.info("Premium subscription coming soon!")}
+                            >
+                              <Crown className="w-4 h-4 mr-1" />
+                              Upgrade Now
+                            </Button>
+                          </div>
+                          <Crown className="w-10 h-10 text-purple-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
                 )}
               </div>
             </div>

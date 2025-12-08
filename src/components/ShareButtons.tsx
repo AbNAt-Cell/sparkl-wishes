@@ -33,10 +33,8 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title }) =
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (open && !qrCodeUrl) {
-      generateQRCode();
-    }
-  }, [open, qrCodeUrl]);
+    if (open && !qrCodeUrl) generateQRCode();
+  }, [open]);
 
   const generateQRCode = async () => {
     try {
@@ -46,7 +44,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title }) =
         color: { dark: "#000000", light: "#FFFFFF" },
       });
       setQrCodeUrl(url);
-    } catch (err) {
+    } catch {
       toast.error("Failed to generate QR code");
     }
   };
@@ -69,9 +67,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title }) =
     const a = document.createElement("a");
     a.href = qrCodeUrl;
     a.download = `${title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-wishlist-qr.png`;
-    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
     toast.success("QR code downloaded!");
   };
 
@@ -89,118 +85,69 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({ shareUrl, title }) =
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="w-[92vw] max-w-[92vw] max-h-[92vh] rounded-2xl p-5 overflow-y-auto">
+      <DialogContent className="w-[92vw] max-w-lg mx-auto max-h-[92vh] overflow-y-auto rounded-3xl p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-2xl font-semibold">
-            <Share2 className="w-6 h-6 text-purple-600" />
+          <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-center justify-center">
+            <Share2 className="w-7 h-7 text-purple-600" />
             Share Wishlist
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-8 py-4">
-          {/* Social Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={() =>
-                window.open(
-                  `https://wa.me/?text=${encodeURIComponent(shareText)}`,
-                  "_blank",
-                  "noopener,noreferrer"
-                )
-              }
-              className="h-14 bg-[#25D366] hover:bg-[#128C7E] text-white font-medium justify-start"
-            >
-              <MessageCircle className="w-6 h-6 mr-3 flex-shrink-0" />
+        <div className="grid gap-8 py-6">
+
+          {/* Social Buttons – perfect 2×2 grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <Button className="h-16 bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
+              <MessageCircle className="w-7 h-7 mr-4" />
               WhatsApp
             </Button>
-
-            <Button
-              onClick={() =>
-                window.open(
-                  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
-                  "_blank"
-                )
-              }
-              className="h-14 bg-[#1877F2] hover:bg-[#166fe5] text-white font-medium justify-start"
-            >
-              <Facebook className="w-6 h-6 mr-3 flex-shrink-0" />
+            <Button className="h-16 bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
+              <Facebook className="w-7 h-7 mr-4" />
               Facebook
             </Button>
-
-            <Button
-              onClick={() =>
-                window.open(
-                  `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                    "Hi, kindly buy me something on my wishlist\n\n" + title
-                  )}&url=${encodeURIComponent(shareUrl)}`,
-                  "_blank"
-                )
-              }
-              className="h-14 bg-black hover:bg-gray-800 text-white font-medium justify-start"
-            >
-              <X className="w-6 h-6 mr-3 flex-shrink-0" />
+            <Button className="h-16 bg-black hover:bg-gray-800 text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
+              <X className="w-7 h-7 mr-4" />
               X (Twitter)
             </Button>
-
-            <Button
-              onClick={() => {
-                window.location.href = `mailto:?subject=${encodeURIComponent(
-                  "My Wishlist: " + title
-                )}&body=${encodeURIComponent(shareText)}`;
-              }}
-              className="h-14 bg-gray-700 hover:bg-gray-800 text-white font-medium justify-start"
-            >
-              <Mail className="w-6 h-6 mr-3 flex-shrink-0" />
+            <Button className="h-16 bg-gray-700 hover:bg-gray-900 text-white font-semibold text-lg justify-start pl-6 rounded-2xl shadow-lg">
+              <Mail className="w-7 h-7 mr-4" />
               Email
             </Button>
           </div>
 
           {/* Copy Link */}
-          <div className="space-y-3">
-            <p className="text-center text-sm font-medium text-muted-foreground">
-              Or copy the link
-            </p>
+          <div className="space-y-4">
+            <p className="text-center text-muted-foreground font-medium">Or copy the link</p>
             <div className="flex gap-3 items-center">
-              <div className="flex-1 min-w-0 break-words rounded-lg border bg-muted px-4 py-3 text-sm font-mono">
+              <div className="flex-1 min-w-0 bg-muted rounded-xl px-5 py-4 text-sm font-medium break-all border">
                 {shareUrl}
               </div>
-              <Button
-                onClick={handleCopy}
-                variant="outline"
-                size="icon"
-                className="h-12 w-12 flex-shrink-0"
-              >
-                {copied ? <Check className="h-5 w-5 text-green-600" /> : <Copy className="h-5 w-5" />}
+              <Button onClick={handleCopy} size="icon" variant="outline" className="h-14 w-14 rounded-xl">
+                {copied ? <Check className="h-6 w-6 text-green-600" /> : <Copy className="h-6 w-6" />}
               </Button>
             </div>
           </div>
 
           {/* QR Code */}
-          <div className="space-y-5">
-            <p className="text-center text-sm font-medium text-muted-foreground">
-              QR Code – perfect for invitations
-            </p>
-            <div className="flex flex-col items-center">
+          <div className="space-y-6">
+            <p className="text-center text-muted-foreground font-medium">QR Code – perfect for invitations</p>
+            <div className="flex justify-center">
               {qrCodeUrl ? (
-                <div className="w-full max-w-[280px]">
-                  <div className="rounded-2xl border-2 border-dashed border-purple-200 bg-white p-5 shadow-xl">
-                    <img
-                      src={qrCodeUrl}
-                      alt="Wishlist QR Code"
-                      className="w-full h-auto"
-                    />
-                  </div>
-                  <Button onClick={handleDownloadQR} variant="outline" className="mt-6 w-full">
-                    <QrCode className="w-5 h-5 mr-2" />
-                    Download QR Code
-                  </Button>
+                <div className="rounded-3xl bg-white p-8 shadow-2xl border-4 border-dashed border-purple-200">
+                  <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64" />
                 </div>
               ) : (
-                <div className="w-full max-w-[280px] h-64 flex items-center justify-center rounded-2xl bg-muted">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
+                <div className="w-64 h-64 bg-muted rounded-3xl flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-14 w-14 border-b-4 border-purple-600" />
                 </div>
               )}
             </div>
+            {qrCodeUrl && (
+              <Button onClick={handleDownloadQR} variant="outline" className="w-full max-w-sm mx-auto h-12 rounded-xl text-base font-medium">
+                <QrCode className="w-5 h-5 mr-2" />
+                Download QR Code
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

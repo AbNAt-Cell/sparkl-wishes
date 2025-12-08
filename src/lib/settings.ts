@@ -9,8 +9,15 @@ export type PaymentsSettings = {
   platformFeeMax: number;     // absolute currency unit
 };
 
+export type PremiumSettings = {
+  enabled: boolean;
+  price: number;
+  currency: string;
+};
+
 export type AppSettings = {
   payments: PaymentsSettings;
+  premium: PremiumSettings;
 };
 
 const defaultSettings: AppSettings = {
@@ -20,6 +27,11 @@ const defaultSettings: AppSettings = {
     platformFeePercent: 0.05,
     platformFeeMin: 0,
     platformFeeMax: 100,
+  },
+  premium: {
+    enabled: true,
+    price: 5000,
+    currency: "NGN",
   },
 };
 
@@ -37,6 +49,14 @@ const normalizePaymentSettings = (dbValue: any): PaymentsSettings => {
   };
 };
 
+const normalizePremiumSettings = (dbValue: any): PremiumSettings => {
+  return {
+    enabled: dbValue?.enabled ?? defaultSettings.premium.enabled,
+    price: dbValue?.price ?? defaultSettings.premium.price,
+    currency: dbValue?.currency ?? defaultSettings.premium.currency,
+  };
+};
+
 export function useAppSettings() {
   return useQuery({
     queryKey: ["app-settings"],
@@ -44,13 +64,15 @@ export function useAppSettings() {
       const { data, error } = await supabase
         .from("app_settings")
         .select("key, value")
-        .in("key", ["payments"]); // extendable later
+        .in("key", ["payments", "premium"]);
       if (error) throw error;
       const map = new Map<string, any>((data ?? []).map((r: any) => [r.key, r.value]));
       const dbPayments = map.get("payments");
+      const dbPremium = map.get("premium");
       
       return {
         payments: normalizePaymentSettings(dbPayments),
+        premium: normalizePremiumSettings(dbPremium),
       };
     },
     staleTime: 60_000,

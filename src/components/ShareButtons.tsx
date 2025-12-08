@@ -90,7 +90,8 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-lg w-[95vw] rounded-2xl p-6">
+      {/* Fixed: Prevent horizontal overflow on mobile */}
+      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto rounded-2xl p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-2xl font-semibold">
             <Share2 className="w-6 h-6 text-purple-600" />
@@ -165,7 +166,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
               <div className="flex-1 truncate rounded-lg border bg-muted px-4 py-3 text-sm font-mono break-all">
                 {shareUrl}
               </div>
-              <Button onClick={handleCopy} variant="outline" size="icon" className="h-12 w-12">
+              <Button onClick={handleCopy} variant="outline" size="icon" className="h-12 w-12 shrink-0">
                 {copied ? (
                   <Check className="h-5 w-5 text-green-600" />
                 ) : (

@@ -90,8 +90,8 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
         </Button>
       </DialogTrigger>
 
-      {/* Fixed: Prevent horizontal overflow on mobile */}
-      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto rounded-2xl p-6">
+      {/* Optimized: Tighter mobile width, strict max bounds, and responsive QR */}
+      <DialogContent className="max-w-lg w-[90vw] max-w-[90vw] max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-2xl font-semibold">
             <Share2 className="w-6 h-6 text-purple-600" />
@@ -163,10 +163,10 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
               Or copy the link
             </p>
             <div className="flex gap-3">
-              <div className="flex-1 truncate rounded-lg border bg-muted px-4 py-3 text-sm font-mono break-all">
+              <div className="flex-1 min-w-0 truncate rounded-lg border bg-muted px-4 py-3 text-sm font-mono break-all">
                 {shareUrl}
               </div>
-              <Button onClick={handleCopy} variant="outline" size="icon" className="h-12 w-12 shrink-0">
+              <Button onClick={handleCopy} variant="outline" size="icon" className="h-12 w-12 flex-shrink-0">
                 {copied ? (
                   <Check className="h-5 w-5 text-green-600" />
                 ) : (
@@ -185,7 +185,11 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
               {qrCodeUrl ? (
                 <>
                   <div className="rounded-2xl border-2 border-dashed border-purple-200 bg-white p-6 shadow-xl">
-                    <img src={qrCodeUrl} alt="Wishlist QR Code" className="w-64 h-64" />
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="Wishlist QR Code" 
+                      className="w-full max-w-64 h-auto max-h-[70vh] object-contain" 
+                    />
                   </div>
                   <Button onClick={handleDownloadQR} variant="outline" className="mt-6 w-full max-w-xs">
                     <QrCode className="w-5 h-5 mr-2" />
@@ -193,7 +197,7 @@ export const ShareButtons: React.FC<ShareButtonsProps> = ({
                   </Button>
                 </>
               ) : (
-                <div className="flex h-64 w-64 items-center justify-center rounded-2xl bg-muted">
+                <div className="flex h-64 w-64 max-w-full items-center justify-center rounded-2xl bg-muted">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
                 </div>
               )}

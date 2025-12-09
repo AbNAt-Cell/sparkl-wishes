@@ -225,18 +225,57 @@ export const ClaimItemDialog = ({
           item_id: itemId,
           claimer_name: formData.name,
         },
-        callback: async (response: any) => {
-          try {
-            // Check if claim was already updated by webhook
-            const { data: existingClaim } = await supabase
-              .from("claims")
-              .select("payment_status, status")
-              .eq("id", claim.id)
-              .single();
+        callback: function(response: any) {
+          (async () => {
+            try {
+              // Check if claim was already updated by webhook
+              const { data: existingClaim } = await supabase
+                .from("claims")
+                .select("payment_status, status")
+                .eq("id", claim.id)
+                .single();
 
-            // If already completed, just refresh and close
-            if (existingClaim?.payment_status === "completed" || existingClaim?.status === "completed") {
-              console.log("Claim already completed (likely by webhook)");
+              // If already completed, just refresh and close
+              if (existingClaim?.payment_status === "completed" || existingClaim?.status === "completed") {
+                console.log("Claim already completed (likely by webhook)");
+                toast.success("Payment successful! Thank you for your gift.");
+                queryClient.invalidateQueries({ queryKey: ["funding", itemId] });
+                queryClient.invalidateQueries({ queryKey: ["wishlist-items"] });
+                queryClient.invalidateQueries({ queryKey: ["shared-wishlist-items"] });
+                onClaimSuccess();
+                onOpenChange(false);
+                setIsSubmitting(false);
+                return;
+              }
+
+              // Update claim with payment reference and both status fields
+              const { error: updateError } = await supabase
+                .from("claims")
+                .update({
+                  payment_reference: response.reference,
+                  payment_method: "paystack",
+                  payment_status: "completed",
+                  status: "completed", // Also set main status field
+                })
+                .eq("id", claim.id);
+
+              if (updateError) {
+                console.error("Failed to update claim:", updateError);
+                // Payment succeeded but update failed - webhook will handle it
+                toast.warning("Payment successful! Processing your claim...");
+                // Still invalidate queries and close - webhook will complete the update
+                queryClient.invalidateQueries({ queryKey: ["funding", itemId] });
+                queryClient.invalidateQueries({ queryKey: ["wishlist-items"] });
+                queryClient.invalidateQueries({ queryKey: ["shared-wishlist-items"] });
+                onClaimSuccess();
+                onOpenChange(false);
+                setIsSubmitting(false);
+                return;
+              }
+
+              // Wait a moment for the database trigger to process
+              await new Promise(resolve => setTimeout(resolve, 500));
+
               toast.success("Payment successful! Thank you for your gift.");
               queryClient.invalidateQueries({ queryKey: ["funding", itemId] });
               queryClient.invalidateQueries({ queryKey: ["wishlist-items"] });
@@ -244,55 +283,18 @@ export const ClaimItemDialog = ({
               onClaimSuccess();
               onOpenChange(false);
               setIsSubmitting(false);
-              return;
-            }
-
-            // Update claim with payment reference and both status fields
-            const { error: updateError } = await supabase
-              .from("claims")
-              .update({
-                payment_reference: response.reference,
-                payment_method: "paystack",
-                payment_status: "completed",
-                status: "completed", // Also set main status field
-              })
-              .eq("id", claim.id);
-
-            if (updateError) {
-              console.error("Failed to update claim:", updateError);
-              // Payment succeeded but update failed - webhook will handle it
-              toast.warning("Payment successful! Processing your claim...");
-              // Still invalidate queries and close - webhook will complete the update
+            } catch (error: any) {
+              console.error("Error in payment callback:", error);
+              // Payment succeeded, so show success but note processing
+              toast.warning("Payment successful! Your claim is being processed...");
               queryClient.invalidateQueries({ queryKey: ["funding", itemId] });
               queryClient.invalidateQueries({ queryKey: ["wishlist-items"] });
               queryClient.invalidateQueries({ queryKey: ["shared-wishlist-items"] });
               onClaimSuccess();
               onOpenChange(false);
               setIsSubmitting(false);
-              return;
             }
-
-            // Wait a moment for the database trigger to process
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            toast.success("Payment successful! Thank you for your gift.");
-            queryClient.invalidateQueries({ queryKey: ["funding", itemId] });
-            queryClient.invalidateQueries({ queryKey: ["wishlist-items"] });
-            queryClient.invalidateQueries({ queryKey: ["shared-wishlist-items"] });
-            onClaimSuccess();
-            onOpenChange(false);
-            setIsSubmitting(false);
-          } catch (error: any) {
-            console.error("Error in payment callback:", error);
-            // Payment succeeded, so show success but note processing
-            toast.warning("Payment successful! Your claim is being processed...");
-            queryClient.invalidateQueries({ queryKey: ["funding", itemId] });
-            queryClient.invalidateQueries({ queryKey: ["wishlist-items"] });
-            queryClient.invalidateQueries({ queryKey: ["shared-wishlist-items"] });
-            onClaimSuccess();
-            onOpenChange(false);
-            setIsSubmitting(false);
-          }
+          })();
         },
         onClose: () => {
           toast.info("Payment cancelled. Your claim will expire in 20 minutes if not completed.");

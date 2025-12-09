@@ -367,20 +367,22 @@ const Dashboard = () => {
                                       toast.error("Payment cancelled");
                                       setIsPayingPremium(false);
                                     },
-                                    callback: async (response: { reference: string }) => {
-                                      // Update profile to premium
-                                      const { error } = await supabase
-                                        .from("profiles")
-                                        .update({ is_premium: true })
-                                        .eq("id", session.user.id);
-                                      
-                                      if (error) {
-                                        toast.error("Payment received but failed to activate premium. Contact support with ref: " + response.reference);
-                                      } else {
-                                        toast.success("Welcome to Premium! Your wishlists can now be featured.");
-                                        queryClient.invalidateQueries({ queryKey: ["user-profile"] });
-                                      }
-                                      setIsPayingPremium(false);
+                                    callback: function(response: { reference: string }) {
+                                      (async () => {
+                                        // Update profile to premium
+                                        const { error } = await supabase
+                                          .from("profiles")
+                                          .update({ is_premium: true })
+                                          .eq("id", session.user.id);
+                                        
+                                        if (error) {
+                                          toast.error("Payment received but failed to activate premium. Contact support with ref: " + response.reference);
+                                        } else {
+                                          toast.success("Welcome to Premium! Your wishlists can now be featured.");
+                                          queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+                                        }
+                                        setIsPayingPremium(false);
+                                      })();
                                     },
                                   });
                                   handler.openIframe();

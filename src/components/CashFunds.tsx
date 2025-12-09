@@ -155,33 +155,6 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
         throw new Error("Payments are currently disabled");
       }
 
-      // Load Paystack script if not already loaded
-      if (!window.PaystackPop) {
-        try {
-          const script = document.createElement("script");
-          script.src = "https://js.paystack.co/v1/inline.js";
-          script.async = true;
-          await new Promise<void>((resolve, reject) => {
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error("Failed to load Paystack"));
-            document.head.appendChild(script);
-            setTimeout(() => reject(new Error("Paystack loading timeout")), 10000);
-          });
-        } catch (error) {
-          console.error("Failed to load Paystack:", error);
-          toast.error("Failed to load payment service. Please refresh the page.");
-          setIsContributing(false);
-          return;
-        }
-      }
-
-      // Double check Paystack is available
-      if (!window.PaystackPop) {
-        toast.error("Payment service is not available. Please refresh the page.");
-        setIsContributing(false);
-        return;
-      }
-
       // @ts-expect-error - Paystack is loaded via script tag
       const handler = window.PaystackPop.setup({
         key: paystackKey,

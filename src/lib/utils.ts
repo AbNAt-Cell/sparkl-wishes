@@ -146,13 +146,3 @@ export function formatCompactNumber(num: number): string {
   }
   return num.toString();
 }
-
-/**
- * Format price with thousand separators
- */
-export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}

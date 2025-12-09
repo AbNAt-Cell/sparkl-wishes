@@ -15,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate, getCurrencySymbol } from "@/lib/utils";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
@@ -33,14 +33,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [wishlistToDelete, setWishlistToDelete] = useState<string | null>(null);
-  const [isPayingPremium, setIsPayingPremium] = useState(false);
   const queryClient = useQueryClient();
   
   // Get user's currency preference
@@ -343,61 +340,10 @@ const Dashboard = () => {
                             <Button 
                               size="sm"
                               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                              disabled={isPayingPremium}
-                              onClick={() => {
-                                if (!session?.user?.email) {
-                                  toast.error("Please ensure you're logged in with a valid email");
-                                  return;
-                                }
-                                if (!window.PaystackPop) {
-                                  toast.error("Payment system not loaded. Please refresh.");
-                                  return;
-                                }
-                                setIsPayingPremium(true);
-                                const amountInKobo = Math.round(appSettings.premium.price * 100);
-                                const reference = `premium_${session.user.id}_${Date.now()}`;
-                                try {
-                                  const handler = window.PaystackPop.setup({
-                                    key: PAYSTACK_PUBLIC_KEY,
-                                    email: session.user.email,
-                                    amount: amountInKobo,
-                                    currency: appSettings.premium.currency,
-                                    ref: reference,
-                                    onClose: () => {
-                                      toast.error("Payment cancelled");
-                                      setIsPayingPremium(false);
-                                    },
-                                    callback: function(response: { reference: string }) {
-                                      (async () => {
-                                        // Update profile to premium
-                                        const { error } = await supabase
-                                          .from("profiles")
-                                          .update({ is_premium: true })
-                                          .eq("id", session.user.id);
-                                        
-                                        if (error) {
-                                          toast.error("Payment received but failed to activate premium. Contact support with ref: " + response.reference);
-                                        } else {
-                                          toast.success("Welcome to Premium! Your wishlists can now be featured.");
-                                          queryClient.invalidateQueries({ queryKey: ["user-profile"] });
-                                        }
-                                        setIsPayingPremium(false);
-                                      })();
-                                    },
-                                  });
-                                  handler.openIframe();
-                                } catch (err) {
-                                  toast.error("Failed to initialize payment");
-                                  setIsPayingPremium(false);
-                                }
-                              }}
+                              onClick={() => toast.info("Premium subscription coming soon!")}
                             >
-                              {isPayingPremium ? (
-                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              ) : (
-                                <Crown className="w-4 h-4 mr-1" />
-                              )}
-                              {isPayingPremium ? "Processing..." : "Upgrade Now"}
+                              <Crown className="w-4 h-4 mr-1" />
+                              Upgrade Now
                             </Button>
                           </div>
                           <Crown className="w-10 h-10 text-purple-400" />

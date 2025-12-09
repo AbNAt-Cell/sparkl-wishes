@@ -349,7 +349,6 @@ const Dashboard = () => {
                                   toast.error("Please ensure you're logged in with a valid email");
                                   return;
                                 }
-                                // @ts-expect-error - Paystack loaded via script
                                 if (!window.PaystackPop) {
                                   toast.error("Payment system not loaded. Please refresh.");
                                   return;
@@ -358,7 +357,6 @@ const Dashboard = () => {
                                 const amountInKobo = Math.round(appSettings.premium.price * 100);
                                 const reference = `premium_${session.user.id}_${Date.now()}`;
                                 try {
-                                  // @ts-expect-error - Paystack loaded via script
                                   const handler = window.PaystackPop.setup({
                                     key: PAYSTACK_PUBLIC_KEY,
                                     email: session.user.email,

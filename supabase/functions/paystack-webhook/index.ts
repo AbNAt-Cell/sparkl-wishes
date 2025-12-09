@@ -63,7 +63,7 @@ serve(async (req) => {
 
       // === 4. Prevent duplicate processing ===
       if (claim.payment_status === "completed" || claim.status === "completed") {
-        console.log("Already processed claim:", claimId);
+        console.log("Already processed claim:", claimId, "Status:", { payment_status: claim.payment_status, status: claim.status });
         return new Response(JSON.stringify({ message: "Already processed" }), {
           status: 200,
           headers: corsHeaders,
@@ -71,22 +71,43 @@ serve(async (req) => {
       }
 
       // === 5. Mark claim as FULLY COMPLETED ===
-      const { error: updateError } = await supabase
+      // Use upsert-like logic: update only if not already fully completed
+      // This handles race conditions where client callback might have already updated payment_status
+      const updateData: any = {
+        payment_method: "paystack",
+        payment_reference: reference,
+      };
+      
+      // Only set status fields if not already completed
+      if (claim.status !== "completed") {
+        updateData.status = "completed";
+      }
+      if (claim.payment_status !== "completed") {
+        updateData.payment_status = "completed";
+      }
+
+      const { data: updatedClaim, error: updateError } = await supabase
         .from("claims")
-        .update({
-          status: "completed",           // ← Main status: completed
-          payment_status: "completed",   // ← Payment confirmed
-          payment_method: "paystack",
-          payment_reference: reference,
-        })
-        .eq("id", claimId);
+        .update(updateData)
+        .eq("id", claimId)
+        .select()
+        .single();
 
       if (updateError) {
         console.error("Failed to update claim:", updateError);
         throw updateError;
       }
 
-      console.log(`Claim ${claimId} fully completed via Paystack`);
+      // Check if update actually happened (might have been updated by client callback)
+      if (!updatedClaim) {
+        console.log(`Claim ${claimId} was already updated (likely by client callback)`);
+        return new Response(JSON.stringify({ message: "Claim already updated" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Claim ${claimId} fully completed via Paystack webhook`);
 
       // === 6. Get item name for notification ===
       const { data: item } = await supabase

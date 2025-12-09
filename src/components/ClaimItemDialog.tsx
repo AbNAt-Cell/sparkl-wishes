@@ -181,7 +181,9 @@ export const ClaimItemDialog = ({
     script.src = "https://js.paystack.co/v1/inline.js";
     script.async = true;
     document.body.appendChild(script);
-    return () => { if (document.body.contains(script)) document.body.removeChild(script); };
+    return () => {
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
   }, []);
 
   const handlePaystackPayment = async (claimId: string) => {
@@ -268,24 +270,17 @@ export const ClaimItemDialog = ({
     }
   };
 
-  const handleAnonymousToggle = (checked: boolean) => {
-    if (checked) {
-      setFormData({ name: "", email: "", phone: "", notes: "", isAnonymous: true });
-    } else {
-      // refetch user data
-    }
-  };
-
   return (
     <TooltipProvider>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        {/* PERFECT CENTERED MODAL - THIS IS THE FIX */}
+        {/* PERFECT CENTERED MODAL - FINAL FIX */}
         <DialogContent
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
-                     w-[92vw] max-w-lg max-h-[90dvh] overflow-y-auto 
-                     rounded-xl border bg-background p-6 shadow-2xl
-                     !transform-none"
-          style={{ transform: "translate(-50%, -50%)" }}
+          className="fixed inset-0 m-auto h-fit max-h-[90dvh] w-[92vw] max-w-lg overflow-y-auto rounded-xl border bg-background p-6 shadow-2xl"
+          style={{
+            transform: "translate(-50%, -50%)",
+            top: "50%",
+            left: "50%",
+          }}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader className="space-y-3">
@@ -294,7 +289,7 @@ export const ClaimItemDialog = ({
               Claim "{itemName}"
             </DialogTitle>
             <DialogDescription className="text-base">
-              Fill in your details below to claim this gift and proceed to payment.
+              {itemPrice ? "Fill in your details below to claim this gift and proceed to payment." : "Claim this gift (no payment required)."}
             </DialogDescription>
           </DialogHeader>
 
@@ -311,30 +306,40 @@ export const ClaimItemDialog = ({
 
               <form onSubmit={handleSubmit} className="space-y-6 pt-4">
                 {allowGroupGifting && itemPrice && (
-                  <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-4 p-4 rounded-lg border bg-gradient-to-br from-purple-50/30 to-pink-50/30">
+                    <div className="flex items-center gap-2 pb-2 border-b">
                       <Info className="w-4 h-4" />
                       <h3 className="font-medium text-sm">How much would you like to contribute?</h3>
                     </div>
                     <RadioGroup value={claimType} onValueChange={(v: any) => setClaimType(v)}>
                       <div className="space-y-3">
-                        <div className="flex items-center space-x-3 p-3 rounded-lg border bg-background">
+                        <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white">
                           <RadioGroupItem value="full" id="full" />
-                          <Label htmlFor="full" className="cursor-pointer">Fund Remaining Amount</Label>
+                          <Label htmlFor="full" className="cursor-pointer font-medium">
+                            Fund Remaining Amount
+                          </Label>
                         </div>
-                        <div className="flex items-center space-x-3 p-3 rounded-lg border bg-background">
+                        <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white">
                           <RadioGroupItem value="partial" id="partial" />
-                          <Label htmlFor="partial" className="cursor-pointer">Partial Contribution</Label>
+                          <div className="flex-1 space-y-2">
+                            <Label htmlFor="partial" className="cursor-pointer font-medium">
+                              Partial Contribution (Group Gift)
+                            </Label>
+                            {claimType === "partial" && (
+                              <div className="space-y-2 mt-3">
+                                <Label>Your Contribution Amount *</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={contributionAmount}
+                                  onChange={(e) => setContributionAmount(e.target.value)}
+                                  placeholder="0.00"
+                                  required
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        {claimType === "partial" && (
-                          <Input
-                            type="number"
-                            placeholder="Enter amount"
-                            value={contributionAmount}
-                            onChange={(e) => setContributionAmount(e.target.value)}
-                            required
-                          />
-                        )}
                       </div>
                     </RadioGroup>
                   </div>
@@ -343,33 +348,33 @@ export const ClaimItemDialog = ({
                 <div className="space-y-4">
                   <div>
                     <Label>Your Name *</Label>
-                    <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                    <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required placeholder="John Doe" />
                   </div>
                   <div>
                     <Label>Your Email *</Label>
-                    <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+                    <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required placeholder="john@example.com" />
                   </div>
                   <div>
                     <Label>Phone Number *</Label>
-                    <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
+                    <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required placeholder="+1234567890" />
                   </div>
                   <div>
-                    <Label>Message (Optional)</Label>
-                    <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+                    <Label>Personal Message (Optional)</Label>
+                    <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Add a message..." rows={3} />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="anon" checked={formData.isAnonymous} onCheckedChange={handleAnonymousToggle} />
+                    <Checkbox id="anon" checked={formData.isAnonymous} onCheckedChange={(c) => setFormData({ ...formData, isAnonymous: !!c })} />
                     <Label htmlFor="anon" className="cursor-pointer">Claim anonymously</Label>
                   </div>
                 </div>
 
-                <div className="pt-4 space-y-3">
+                <div className="pt-4 space-y-3 border-t">
                   {!showPaymentButton ? (
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? "Processing..." : "Continue to Payment"}
+                    <Button type="submit" className="w-full h-12 text-base font-medium" disabled={isSubmitting}>
+                      {isSubmitting ? "Processing..." : itemPrice ? "Continue to Payment" : "Claim Item"}
                     </Button>
                   ) : (
-                    <Button onClick={handlePayment} className="w-full bg-green-600 hover:bg-green-700" disabled={isLoadingPayment}>
+                    <Button onClick={handlePayment} className="w-full h-12 text-base font-medium bg-green-600 hover:bg-green-700" disabled={isLoadingPayment}>
                       {isLoadingPayment ? "Opening Paystack..." : `Pay ${getCurrencySymbol(currency)}${paymentDisplayAmount.toFixed(2)}`}
                     </Button>
                   )}

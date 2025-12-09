@@ -11,14 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Info, CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { getCurrencySymbol } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { useAppSettings } from "@/lib/settings";
 
 const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; targetAmount: number; currency: string }) => {
   const { data } = useQuery({
@@ -112,67 +111,81 @@ export const ClaimItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* FINAL FIX — NEVER SHIFTS RIGHT, NEVER CUT OFF */}
-      <DialogContent
-        className="fixed inset-0 m-auto w-[92vw] max-w-lg h-fit max-h-[90dvh] overflow-y-auto 
-                   rounded-xl border bg-background p-6 shadow-2xl
-                   !transform-none"
-        style={{
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center gap-2">
-            <CheckCircle2 className="w-6 h-6 text-primary" />
-            Claim "{itemName}"
+      <DialogContent className="w-[95vw] max-w-md mx-auto max-h-[85dvh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-lg sm:text-xl flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="truncate">Claim "{itemName}"</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Fill in your details to claim this gift.
           </DialogDescription>
         </DialogHeader>
 
         {isOwnItem ? (
-          <Alert className="bg-red-50 border-red-200">
+          <Alert className="bg-destructive/10 border-destructive/30">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>You cannot claim your own wishlist items.</AlertDescription>
           </Alert>
         ) : (
           <>
-            {allowGroupGifting && itemPrice && <FundingProgress itemId={itemId} targetAmount={itemPrice} currency={currency} />}
+            {allowGroupGifting && itemPrice && (
+              <FundingProgress itemId={itemId} targetAmount={itemPrice} currency={currency} />
+            )}
 
-            <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-              {/* Your full form here — unchanged */}
-              <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+              <div className="space-y-3">
                 <div>
-                  <Label>Name *</Label>
-                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                  <Label className="text-sm">Name *</Label>
+                  <Input 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                    required 
+                    className="h-10"
+                  />
                 </div>
                 <div>
-                  <Label>Email *</Label>
-                  <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+                  <Label className="text-sm">Email *</Label>
+                  <Input 
+                    type="email" 
+                    value={formData.email} 
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                    required 
+                    className="h-10"
+                  />
                 </div>
                 <div>
-                  <Label>Phone *</Label>
-                  <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
+                  <Label className="text-sm">Phone *</Label>
+                  <Input 
+                    value={formData.phone} 
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                    required 
+                    className="h-10"
+                  />
                 </div>
                 <div>
-                  <Label>Message (optional)</Label>
-                  <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+                  <Label className="text-sm">Message (optional)</Label>
+                  <Textarea 
+                    value={formData.notes} 
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
+                    className="min-h-[70px] resize-none"
+                  />
                 </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox id="anon" checked={formData.isAnonymous} onCheckedChange={(c) => setFormData({ ...formData, isAnonymous: !!c })} />
-                  <Label htmlFor="anon" className="cursor-pointer">Claim anonymously</Label>
+                <div className="flex items-center gap-2 py-1">
+                  <Checkbox 
+                    id="anon" 
+                    checked={formData.isAnonymous} 
+                    onCheckedChange={(c) => setFormData({ ...formData, isAnonymous: !!c })} 
+                  />
+                  <Label htmlFor="anon" className="cursor-pointer text-sm">
+                    Claim anonymously
+                  </Label>
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
-                <Button type="submit" className="w-full h-12" disabled={isSubmitting}>
-                  {isSubmitting ? "Processing..." : "Continue to Payment"}
-                </Button>
-              </div>
+              <Button type="submit" className="w-full h-11" disabled={isSubmitting}>
+                {isSubmitting ? "Processing..." : "Continue to Payment"}
+              </Button>
             </form>
           </>
         )}

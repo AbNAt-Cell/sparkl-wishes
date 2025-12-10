@@ -1,3 +1,4 @@
+// src/pages/CreateWishlist.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { ArrowLeft } from "lucide-react";
 
 const CreateWishlist = () => {
@@ -31,7 +32,7 @@ const CreateWishlist = () => {
       if (!session) navigate("/auth");
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setSession(session);
       if (!session) navigate("/auth");
     });
@@ -40,23 +41,14 @@ const CreateWishlist = () => {
   }, [navigate]);
 
   const ensureProfileExists = async (userId: string, user: Session["user"]) => {
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (!existingProfile) {
+    const { data: profile } = await supabase.from("profiles").select("id").eq("id", userId).maybeSingle();
+    if (!profile) {
       const { error } = await supabase.from("profiles").insert({
         id: userId,
         full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
         avatar_url: user.user_metadata?.avatar_url || null,
       });
-
-      if (error) {
-        console.error("Failed to create profile:", error);
-        return false;
-      }
+      if (error) return false;
     }
     return true;
   };
@@ -65,8 +57,8 @@ const CreateWishlist = () => {
     e.preventDefault();
     if (!session?.user?.id) return;
 
-    const trimmedTitle = formData.title.trim();
-    if (!trimmedTitle) {
+    const title = formData.title.trim();
+    if (!title) {
       toast.error("Please enter a wishlist title");
       return;
     }
@@ -75,7 +67,7 @@ const CreateWishlist = () => {
 
     const profileOk = await ensureProfileExists(session.user.id, session.user);
     if (!profileOk) {
-      toast.error("Failed to set up your profile. Please try again.");
+      toast.error("Profile setup failed. Try again.");
       setIsLoading(false);
       return;
     }
@@ -83,7 +75,7 @@ const CreateWishlist = () => {
     const { data, error } = await supabase
       .from("wishlists")
       .insert({
-        title: trimmedTitle,
+        title,
         description: formData.description.trim() || null,
         event_type: formData.event_type,
         event_date: formData.event_date || null,
@@ -98,7 +90,7 @@ const CreateWishlist = () => {
     if (error) {
       toast.error("Failed to create wishlist: " + error.message);
     } else {
-      toast.success("Wishlist created successfully!");
+      toast.success("Wishlist created!");
       navigate(`/wishlist/${data.id}`);
     }
   };
@@ -109,27 +101,28 @@ const CreateWishlist = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session.user} />
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      {/* Centered Card Container */}
+      <div className="container mx-auto px-4 py-12 max-w-3xl">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard")}
-          className="mb-8 text-lg"
+          className="mb-6 text-lg"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Dashboard
         </Button>
 
-        <Card className="shadow-elegant border-0">
-          <CardHeader className="text-center pb-10">
+        <Card className="shadow-2xl border-0 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-pink-500/10 text-center py-10">
             <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-pink-600 bg-clip-text text-transparent">
-              Create New Wishlist
+              Create Your Wishlist
             </CardTitle>
-            <CardDescription className="text-lg mt-3">
-              Share your special moments with loved ones
+            <CardDescription className="text-lg mt-3 max-w-2xl mx-auto">
+              Share your dreams with loved ones — wedding, birthday, baby shower, and more
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="p-8 md:p-10">
             <form onSubmit={handleSubmit} className="space-y-8">
 
               {/* Title */}
@@ -139,28 +132,26 @@ const CreateWishlist = () => {
                 </Label>
                 <Input
                   id="title"
-                  placeholder="e.g. Our Dream Wedding, Baby Arrival 2025"
+                  placeholder="e.g. Our Wedding Registry 2025"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
                   maxLength={100}
                   className="h-14 text-lg"
                 />
-                <div className="text-sm text-muted-foreground text-right">
+                <p className="text-sm text-muted-foreground text-right">
                   {formData.title.length}/100
-                </div>
+                </p>
               </div>
 
               {/* Event Type */}
               <div className="space-y-3">
-                <Label htmlFor="event_type" className="text-lg font-semibold">
-                  Event Type <span className="text-red-500">*</span>
-                </Label>
+                <Label className="text-lg font-semibold">Event Type</Label>
                 <Select
                   value={formData.event_type}
-                  onValueChange={(value) => setFormData({ ...formData, event_type: value as any })}
+                  onValueChange={(v) => setFormData({ ...formData, event_type: v as any })}
                 >
-                  <SelectTrigger id="event_type" className="h-14 text-lg">
+                  <SelectTrigger className="h-14 text-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,11 +169,8 @@ const CreateWishlist = () => {
 
               {/* Event Date */}
               <div className="space-y-3">
-                <Label htmlFor="event_date" className="text-lg font-semibold">
-                  Event Date (Optional)
-                </Label>
+                <Label className="text-lg font-semibold">Event Date (Optional)</Label>
                 <Input
-                  id="event_date"
                   type="date"
                   value={formData.event_date}
                   onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
@@ -192,14 +180,12 @@ const CreateWishlist = () => {
 
               {/* Currency */}
               <div className="space-y-3">
-                <Label htmlFor="currency" className="text-lg font-semibold">
-                  Currency <span className="text-red-500">*</span>
-                </Label>
+                <Label className="text-lg font-semibold">Currency</Label>
                 <Select
                   value={formData.currency}
-                  onValueChange={(value) => setFormData({ ...formData, currency: value as any })}
+                  onValueChange={(v) => setFormData({ ...formData, currency: v as any })}
                 >
-                  <SelectTrigger id="currency" className="h-14 text-lg">
+                  <SelectTrigger className="h-14 text-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -208,23 +194,17 @@ const CreateWishlist = () => {
                     <SelectItem value="GBP">GBP - British Pound</SelectItem>
                     <SelectItem value="EUR">EUR - Euro</SelectItem>
                     <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                    <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
-                    <SelectItem value="ZAR">ZAR - South African Rand</SelectItem>
-                    <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
                     <SelectItem value="GHS">GHS - Ghanaian Cedi</SelectItem>
-                    <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                    <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Description */}
               <div className="space-y-3">
-                <Label htmlFor="description" className="text-lg font-semibold">
-                  Description (Optional)
-                </Label>
+                <Label className="text-lg font-semibold">Description (Optional)</Label>
                 <Textarea
-                  id="description"
-                  placeholder="Tell your guests why this occasion is special..."
+                  placeholder="Share a little about your special occasion..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={5}
@@ -233,7 +213,7 @@ const CreateWishlist = () => {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-4 pt-6">
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Button
                   type="button"
                   variant="outline"
@@ -255,7 +235,7 @@ const CreateWishlist = () => {
             </form>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 };

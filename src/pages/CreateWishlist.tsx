@@ -16,37 +16,30 @@ const CreateWishlist = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    event_type: "wedding",
+    event_type: "wedding" as const,
     event_date: "",
-    is_public: true,
-    currency: "USD",
+    currency: "USD" as const,
   });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (!session) {
-        navigate("/auth");
-      }
+      if (!session) navigate("/auth");
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        if (!session) {
-          navigate("/auth");
-        }
-      }
-    );
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) navigate("/auth");
+    });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const ensureProfileExists = async (userId: string, user: Session['user']) => {
-    // Check if profile exists
+  const ensureProfileExists = async (userId: string, user: Session["user"]) => {
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("id")
@@ -54,17 +47,14 @@ const CreateWishlist = () => {
       .maybeSingle();
 
     if (!existingProfile) {
-      // Create profile if it doesn't exist
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          id: userId,
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-          avatar_url: user.user_metadata?.avatar_url || null,
-        });
+      const { error } = await supabase.from("profiles").insert({
+        id: userId,
+        full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+        avatar_url: user.user_metadata?.avatar_url || null,
+      });
 
-      if (profileError) {
-        console.error("Failed to create profile:", profileError);
+      if (error) {
+        console.error("Failed to create profile:", error);
         return false;
       }
     }
@@ -75,11 +65,16 @@ const CreateWishlist = () => {
     e.preventDefault();
     if (!session?.user?.id) return;
 
+    const trimmedTitle = formData.title.trim();
+    if (!trimmedTitle) {
+      toast.error("Please enter a wishlist title");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Ensure profile exists before creating wishlist
-    const profileExists = await ensureProfileExists(session.user.id, session.user);
-    if (!profileExists) {
+    const profileOk = await ensureProfileExists(session.user.id, session.user);
+    if (!profileOk) {
       toast.error("Failed to set up your profile. Please try again.");
       setIsLoading(false);
       return;
@@ -88,7 +83,11 @@ const CreateWishlist = () => {
     const { data, error } = await supabase
       .from("wishlists")
       .insert({
-        ...formData,
+        title: trimmedTitle,
+        description: formData.description.trim() || null,
+        event_type: formData.event_type,
+        event_date: formData.event_date || null,
+        currency: formData.currency,
         user_id: session.user.id,
       })
       .select()
@@ -109,44 +108,59 @@ const CreateWishlist = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session.user} />
-      
+
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard")}
-          className="mb-6"
+          className="mb-8 text-lg"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Dashboard
         </Button>
 
-        <Card className="shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-3xl">Create New Wishlist</CardTitle>
-            <CardDescription>
+        <Card className="shadow-elegant border-0">
+          <CardHeader className="text-center pb-10">
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-pink-600 bg-clip-text text-transparent">
+              Create New Wishlist
+            </CardTitle>
+            <CardDescription className="text-lg mt-3">
               Share your special moments with loved ones
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Wishlist Title *</Label>
+            <form onSubmit={handleSubmit} className="space-y-8">
+
+              {/* Title */}
+              <div className="space-y-3">
+                <Label htmlFor="title" className="text-lg font-semibold">
+                  Wishlist Title <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="title"
-                  placeholder="e.g., Our Wedding Registry"
+                  placeholder="e.g. Our Dream Wedding, Baby Arrival 2025"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
+                  maxLength={100}
+                  className="h-14 text-lg"
                 />
+                <div className="text-sm text-muted-foreground text-right">
+                  {formData.title.length}/100
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="event_type">Event Type *</Label>
+              {/* Event Type */}
+              <div className="space-y-3">
+                <Label htmlFor="event_type" className="text-lg font-semibold">
+                  Event Type <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.event_type}
-                  onValueChange={(value) => setFormData({ ...formData, event_type: value })}
+                  onValueChange={(value) => setFormData({ ...formData, event_type: value as any })}
                 >
-                  <SelectTrigger id="event_type">
+                  <SelectTrigger id="event_type" className="h-14 text-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -155,28 +169,37 @@ const CreateWishlist = () => {
                     <SelectItem value="anniversary">Anniversary</SelectItem>
                     <SelectItem value="baby_shower">Baby Shower</SelectItem>
                     <SelectItem value="graduation">Graduation</SelectItem>
+                    <SelectItem value="housewarming">Housewarming</SelectItem>
+                    <SelectItem value="christmas">Christmas</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="event_date">Event Date</Label>
+              {/* Event Date */}
+              <div className="space-y-3">
+                <Label htmlFor="event_date" className="text-lg font-semibold">
+                  Event Date (Optional)
+                </Label>
                 <Input
                   id="event_date"
                   type="date"
                   value={formData.event_date}
                   onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                  className="h-14 text-lg"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency *</Label>
+              {/* Currency */}
+              <div className="space-y-3">
+                <Label htmlFor="currency" className="text-lg font-semibold">
+                  Currency <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.currency}
-                  onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                  onValueChange={(value) => setFormData({ ...formData, currency: value as any })}
                 >
-                  <SelectTrigger id="currency">
+                  <SelectTrigger id="currency" className="h-14 text-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -188,36 +211,43 @@ const CreateWishlist = () => {
                     <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
                     <SelectItem value="ZAR">ZAR - South African Rand</SelectItem>
                     <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                    <SelectItem value="GHS">GHS - Ghanaian Cedi</SelectItem>
                     <SelectItem value="INR">INR - Indian Rupee</SelectItem>
-                    <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+              {/* Description */}
+              <div className="space-y-3">
+                <Label htmlFor="description" className="text-lg font-semibold">
+                  Description (Optional)
+                </Label>
                 <Textarea
                   id="description"
-                  placeholder="Tell your guests about this special occasion..."
+                  placeholder="Tell your guests why this occasion is special..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
+                  rows={5}
+                  className="resize-none text-lg"
                 />
               </div>
 
-              <div className="flex gap-4">
+              {/* Buttons */}
+              <div className="flex gap-4 pt-6">
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
+                  className="flex-1 h-14 text-lg font-medium"
                   onClick={() => navigate("/dashboard")}
-                  className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isLoading}
-                  className="flex-1 shadow-elegant"
+                  size="lg"
+                  disabled={isLoading || !formData.title.trim()}
+                  className="flex-1 h-14 text-lg font-bold shadow-elegant"
                 >
                   {isLoading ? "Creating..." : "Create Wishlist"}
                 </Button>

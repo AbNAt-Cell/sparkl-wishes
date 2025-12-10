@@ -38,6 +38,7 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [wishlistToDelete, setWishlistToDelete] = useState<string | null>(null);
+  const [isUpgradingPremium, setIsUpgradingPremium] = useState(false);
   const queryClient = useQueryClient();
   
   // Get user's currency preference
@@ -165,6 +166,55 @@ const Dashboard = () => {
     setDeleteDialogOpen(false);
     setWishlistToDelete(null);
   };
+
+  // Handle premium subscription
+  const handleUpgradePremium = async () => {
+    if (!session?.user?.email) {
+      toast.error("Please log in to upgrade to premium");
+      return;
+    }
+
+    setIsUpgradingPremium(true);
+    try {
+      const response = await supabase.functions.invoke("premium-subscription", {
+        body: {
+          action: "initialize",
+          userId: session.user.id,
+          email: session.user.email,
+          callbackUrl: `${window.location.origin}/dashboard?premium_callback=true`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to initialize payment");
+      }
+
+      const data = response.data;
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error("No payment URL received");
+      }
+    } catch (error) {
+      console.error("Premium upgrade error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to start premium upgrade");
+    } finally {
+      setIsUpgradingPremium(false);
+    }
+  };
+
+  // Check for premium callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("premium_callback") === "true") {
+      // Clear the URL parameter
+      window.history.replaceState({}, "", "/dashboard");
+      
+      // Refresh profile data to check premium status
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      toast.success("Welcome to Premium! Your subscription is now active.");
+    }
+  }, [queryClient]);
 
   const eventTypeColors = {
     wedding: "bg-primary/10 text-primary border-primary/20",
@@ -335,15 +385,20 @@ const Dashboard = () => {
                               Get your wishlists featured on the homepage
                             </p>
                             <p className="text-lg font-bold text-purple-700 mb-2">
-                              {formatCurrency(appSettings.premium.price, appSettings.premium.currency)}
+                              {formatCurrency(appSettings.premium.price, appSettings.premium.currency)}/month
                             </p>
                             <Button 
                               size="sm"
                               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                              onClick={() => toast.info("Premium subscription coming soon!")}
+                              onClick={handleUpgradePremium}
+                              disabled={isUpgradingPremium}
                             >
-                              <Crown className="w-4 h-4 mr-1" />
-                              Upgrade Now
+                              {isUpgradingPremium ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <Crown className="w-4 h-4 mr-1" />
+                              )}
+                              {isUpgradingPremium ? "Processing..." : "Upgrade Now"}
                             </Button>
                           </div>
                           <Crown className="w-10 h-10 text-purple-400" />

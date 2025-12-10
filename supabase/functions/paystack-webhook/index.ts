@@ -34,12 +34,115 @@ serve(async (req) => {
     }
 
     const event = JSON.parse(bodyText);
+    console.log("Paystack webhook event:", event.event);
+
+    // === Handle subscription events ===
+    if (event.event === "subscription.create") {
+      const { customer, subscription_code, plan } = event.data;
+      console.log("Subscription created:", { customer, subscription_code, plan });
+
+      // Find user by email and mark as premium
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", customer?.metadata?.user_id)
+        .single();
+
+      if (profiles) {
+        await supabase
+          .from("profiles")
+          .update({ is_premium: true })
+          .eq("id", profiles.id);
+        console.log("User marked as premium via subscription:", profiles.id);
+      }
+
+      return new Response(JSON.stringify({ message: "Subscription created" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (event.event === "subscription.disable" || event.event === "subscription.not_renew") {
+      const { customer } = event.data;
+      console.log("Subscription cancelled/disabled:", customer);
+
+      // Find user and remove premium status
+      if (customer?.metadata?.user_id) {
+        await supabase
+          .from("profiles")
+          .update({ is_premium: false })
+          .eq("id", customer.metadata.user_id);
+        console.log("User premium status removed:", customer.metadata.user_id);
+      }
+
+      return new Response(JSON.stringify({ message: "Subscription disabled" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (event.event === "invoice.payment_failed") {
+      const { customer, subscription } = event.data;
+      console.log("Invoice payment failed:", { customer, subscription });
+
+      // Optionally remove premium status after failed payment
+      if (customer?.metadata?.user_id) {
+        await supabase
+          .from("profiles")
+          .update({ is_premium: false })
+          .eq("id", customer.metadata.user_id);
+        console.log("User premium removed due to payment failure:", customer.metadata.user_id);
+      }
+
+      return new Response(JSON.stringify({ message: "Invoice payment failed handled" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // === 2. Handle charge.success ===
     if (event.event === "charge.success") {
-      const { reference, amount, customer } = event.data;
+      const { reference, amount, customer, metadata } = event.data;
 
-      const match = reference.match(/^claim_([a-f0-9-]+)_/);
+      // Check if this is a premium subscription payment
+      if (reference?.startsWith("premium_") || metadata?.type === "premium_subscription") {
+        const userId = metadata?.user_id || reference?.split("_")[1];
+        
+        if (userId) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ is_premium: true })
+            .eq("id", userId);
+
+          if (updateError) {
+            console.error("Failed to update premium status:", updateError);
+          } else {
+            console.log("User upgraded to premium via charge:", userId);
+          }
+
+          // Send notification
+          if (customer?.email) {
+            supabase.functions.invoke("notifications", {
+              body: {
+                type: "premium.activated",
+                to: [{ email: customer.email }],
+                subject: "Welcome to Premium! 🎉",
+                text: "Your premium subscription is now active. Enjoy your featured wishlists!",
+                html: `<p>Your premium subscription is now active! 🎉</p>
+                       <p>You can now have your wishlists featured on the homepage.</p>`,
+              },
+            }).catch(err => console.warn("Notification failed:", err));
+          }
+        }
+
+        return new Response(JSON.stringify({ message: "Premium payment processed" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Handle claim payments
+      const match = reference?.match(/^claim_([a-f0-9-]+)_/);
       if (!match) {
         return new Response(JSON.stringify({ message: "Ignored: not a claim reference" }), {
           status: 200,
@@ -74,8 +177,8 @@ serve(async (req) => {
       const { error: updateError } = await supabase
         .from("claims")
         .update({
-          status: "completed",           // ← Main status: completed
-          payment_status: "completed",   // ← Payment confirmed
+          status: "completed",
+          payment_status: "completed",
           payment_method: "paystack",
           payment_reference: reference,
         })

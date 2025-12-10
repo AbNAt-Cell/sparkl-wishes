@@ -1,6 +1,6 @@
+// src/App.tsx
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "sonner"; // ← Fixed: Use official sonner import
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -18,7 +18,7 @@ import Terms from "./pages/Terms";
 import WishlistDetail from "./pages/WishlistDetail";
 import SharedWishlist from "./pages/SharedWishlist";
 import FeaturedWishlists from "./pages/FeaturedWishlists";
-import CreateWishlistItem from "./pages/CreateWishlistItem"; // ← Added
+import CreateWishlistItem from "./pages/CreateWishlistItem";
 import NotFound from "./pages/NotFound";
 
 // Admin
@@ -32,63 +32,46 @@ import AdminWithdrawals from "./pages/admin/Withdrawals";
 import AdminSettings from "./pages/admin/Settings";
 import AdminGuard from "@/components/AdminGuard";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60, // 1 minute
-      retry: 1,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner position="top-center" richColors />
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/create-wishlist" element={<CreateWishlist />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/featured" element={<FeaturedWishlists />} />
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />                 {/* This is all you need */}
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/create-wishlist" element={<CreateWishlist />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/featured" element={<FeaturedWishlists />} />
 
-          {/* Wishlist Routes */}
-          <Route path="/wishlist/:id" element={<WishlistDetail />} />
-          <Route path="/share/:shareCode" element={<SharedWishlist />} />
-          <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
+            <Route path="/wishlist/:id" element={<WishlistDetail />} />
+            <Route path="/share/:shareCode" element={<SharedWishlist />} />
+            <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
 
-          {/* Admin Panel */}
-          <Route
-            path="/admin"
-            element={
-              <AdminGuard>
-                <AdminLayout />
-              </AdminGuard>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="wishlists" element={<AdminWishlists />} />
-            <Route path="items" element={<AdminItems />} />
-            <Route path="claims" element={<AdminClaims />} />
-            <Route path="withdrawals" element={<AdminWithdrawals />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
+            <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="wishlists" element={<AdminWishlists />} />
+              <Route path="items" element={<AdminItems />} />
+              <Route path="claims" element={<AdminClaims />} />
+              <Route path="withdrawals" element={<AdminWithdrawals />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
 
-          {/* 404 - Must be last */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

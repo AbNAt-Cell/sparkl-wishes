@@ -240,10 +240,14 @@ const WishlistDetail = () => {
               <div className="flex gap-3">
                 <ShareButtons shareUrl={`${window.location.origin}/share/${wishlist.share_code}`} title={wishlist.title} />
                 {isOwner && (
-                  <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="lg"><Plus className="w-5 h-5 mr-2" /> Add Item</Button>
-                    </DialogTrigger>
+                   <Button 
+                     size="lg" 
+                     onClick={() => navigate(`/wishlist/${wishlist.id}/item/new`)}
+                 >
+                   <Plus className="w-5 h-5 mr-2" />
+                   Add Item
+                   </Button>
+                )}
 
                     {/* FULL-WIDTH, VISIBLE ADD ITEM MODAL */}
                     <DialogContent className="w-[95vw] min-h-[90vh] max-h-[90vh] sm:max-w-2xl mx-auto p-2 sm:p-6 rounded-3xl overflow-y-auto">

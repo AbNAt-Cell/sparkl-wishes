@@ -48,6 +48,7 @@ const App = () => (
           <Route path="/wishlist/:id" element={<WishlistDetail />} />
           <Route path="/share/:shareCode" element={<SharedWishlist />} />
           <Route path="/featured" element={<FeaturedWishlists />} />
+          <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
           <Route
             path="/admin"
             element={

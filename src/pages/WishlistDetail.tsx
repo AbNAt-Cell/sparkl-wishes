@@ -49,7 +49,7 @@ const WishlistDetail = () => {
     enabled: !!id,
   });
 
-  const { data: items = [], isLoading: itemsLoading, refetch: refetchItems } = useQuery({
+  const { data: items = [], refetch: refetchItems } = useQuery({
     queryKey: ["wishlist-items", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -66,7 +66,35 @@ const WishlistDetail = () => {
     enabled: !!id,
   });
 
-  const isOwner = session?.user?.id === wishlist?.user_id;
+  // CRITICAL: Guard everything until data is ready
+  if (wishlistLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <Navbar user={session?.user} />
+        <main className="container mx-auto px-4 py-20 text-center">
+          <div className="text-2xl font-medium">Loading wishlist...</div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!wishlist) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <Navbar user={session?.user} />
+        <div className="container mx-auto px-6 py-20 text-center">
+          <Card className="max-w-md mx-auto p-8">
+            <CardContent>
+              <p className="text-xl mb-6">Wishlist not found</p>
+              <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const isOwner = session?.user?.id === wishlist.user_id;
 
   const handleDeleteClick = (itemId: string) => {
     setItemToDelete(itemId);
@@ -86,22 +114,6 @@ const WishlistDetail = () => {
     }
   };
 
-  if (!wishlist) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
-        <Navbar user={session?.user} />
-        <div className="container mx-auto px-6 py-20 text-center">
-          <Card className="max-w-md mx-auto p-8">
-            <CardContent>
-              <p className="text-xl mb-6">Wishlist not found</p>
-              <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session?.user} />
@@ -114,7 +126,7 @@ const WishlistDetail = () => {
         {/* Header */}
         <Card className="mb-8 shadow-xl">
           {wishlist.cover_image && (
-            <img src={wishlist.cover_image} alt="" className="w-full h-64 object-cover rounded-t-xl" />
+            <img src={wishlist.cover_image} alt="Cover" className="w-full h-64 object-cover rounded-t-xl" />
           )}
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
@@ -147,6 +159,7 @@ const WishlistDetail = () => {
         {/* Items */}
         <section className="space-y-8">
           <h2 className="text-3xl font-bold">Items ({items.length})</h2>
+
           {items.length === 0 ? (
             <Card className="text-center py-20">
               <CardContent>
@@ -170,20 +183,23 @@ const WishlistDetail = () => {
                         src={item.image_url}
                         alt={item.name}
                         className="w-full h-48 object-cover rounded-t-xl"
-                       />
+                      />
                     )}
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-xl">{item.name}</CardTitle>
                         {claimed && <Badge className="bg-green-600">Claimed</Badge>}
                       </div>
-                      {item.description && <CardDescription className="mt-2">{item.description}</CardDescription>}
+                      {item.description && (
+                        <CardDescription className="mt-2">{item.description}</CardDescription>
+                      )}
                     </CardHeader>
                     <CardContent>
                       {(item.price_min || item.price_max) && (
                         <p className="font-bold text-primary text-lg">
-                          {getCurrencySymbol(wishlist.currency)}
-                          {item.price_min || 0} {item.price_max && `– ${item.price_max}`}
+                          {getCurrencySymbol(wishlist.currency || "USD")}
+                          {item.price_min || 0}
+                          {item.price_max && ` – ${item.price_max}`}
                         </p>
                       )}
                       {item.external_link && (
@@ -223,7 +239,7 @@ const WishlistDetail = () => {
           )}
         </section>
 
-        {/* DELETE CONFIRMATION DIALOG */}
+        {/* DELETE CONFIRMATION */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent className="max-w-sm w-[90vw] mx-auto p-8 rounded-3xl">
             <AlertDialogHeader>

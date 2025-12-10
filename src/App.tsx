@@ -1,9 +1,11 @@
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster as Sonner } from "sonner"; // ← Fixed: Use official sonner import
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Pages
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -16,7 +18,10 @@ import Terms from "./pages/Terms";
 import WishlistDetail from "./pages/WishlistDetail";
 import SharedWishlist from "./pages/SharedWishlist";
 import FeaturedWishlists from "./pages/FeaturedWishlists";
+import CreateWishlistItem from "./pages/CreateWishlistItem"; // ← Added
 import NotFound from "./pages/NotFound";
+
+// Admin
 import AdminLayout from "./pages/admin/Layout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
@@ -27,15 +32,23 @@ import AdminWithdrawals from "./pages/admin/Withdrawals";
 import AdminSettings from "./pages/admin/Settings";
 import AdminGuard from "@/components/AdminGuard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 minute
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
+      <Sonner position="top-center" richColors />
       <BrowserRouter>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -45,10 +58,14 @@ const App = () => (
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/featured" element={<FeaturedWishlists />} />
+
+          {/* Wishlist Routes */}
           <Route path="/wishlist/:id" element={<WishlistDetail />} />
           <Route path="/share/:shareCode" element={<SharedWishlist />} />
-          <Route path="/featured" element={<FeaturedWishlists />} />
           <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
+
+          {/* Admin Panel */}
           <Route
             path="/admin"
             element={
@@ -65,7 +82,8 @@ const App = () => (
             <Route path="withdrawals" element={<AdminWithdrawals />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          {/* 404 - Must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,4 +1,3 @@
-// src/pages/CreateWishlist.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,45 +9,64 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/components/ui/toast";
+import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 
 const CreateWishlist = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    event_type: "wedding" as const,
+    event_type: "wedding",
     event_date: "",
-    currency: "USD" as const,
+    is_public: true,
+    currency: "USD",
   });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (!session) navigate("/auth");
+      if (!session) {
+        navigate("/auth");
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setSession(session);
-      if (!session) navigate("/auth");
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        if (!session) {
+          navigate("/auth");
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const ensureProfileExists = async (userId: string, user: Session["user"]) => {
-    const { data: profile } = await supabase.from("profiles").select("id").eq("id", userId).maybeSingle();
-    if (!profile) {
-      const { error } = await supabase.from("profiles").insert({
-        id: userId,
-        full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
-        avatar_url: user.user_metadata?.avatar_url || null,
-      });
-      if (error) return false;
+  const ensureProfileExists = async (userId: string, user: Session['user']) => {
+    // Check if profile exists
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      // Create profile if it doesn't exist
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          avatar_url: user.user_metadata?.avatar_url || null,
+        });
+
+      if (profileError) {
+        console.error("Failed to create profile:", profileError);
+        return false;
+      }
     }
     return true;
   };
@@ -57,17 +75,12 @@ const CreateWishlist = () => {
     e.preventDefault();
     if (!session?.user?.id) return;
 
-    const title = formData.title.trim();
-    if (!title) {
-      toast.error("Please enter a wishlist title");
-      return;
-    }
-
     setIsLoading(true);
 
-    const profileOk = await ensureProfileExists(session.user.id, session.user);
-    if (!profileOk) {
-      toast.error("Profile setup failed. Try again.");
+    // Ensure profile exists before creating wishlist
+    const profileExists = await ensureProfileExists(session.user.id, session.user);
+    if (!profileExists) {
+      toast.error("Failed to set up your profile. Please try again.");
       setIsLoading(false);
       return;
     }
@@ -75,11 +88,7 @@ const CreateWishlist = () => {
     const { data, error } = await supabase
       .from("wishlists")
       .insert({
-        title,
-        description: formData.description.trim() || null,
-        event_type: formData.event_type,
-        event_date: formData.event_date || null,
-        currency: formData.currency,
+        ...formData,
         user_id: session.user.id,
       })
       .select()
@@ -90,7 +99,7 @@ const CreateWishlist = () => {
     if (error) {
       toast.error("Failed to create wishlist: " + error.message);
     } else {
-      toast.success("Wishlist created!");
+      toast.success("Wishlist created successfully!");
       navigate(`/wishlist/${data.id}`);
     }
   };
@@ -100,58 +109,44 @@ const CreateWishlist = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session.user} />
-
-      {/* Centered Card Container */}
-      <div className="container mx-auto px-4 py-12 max-w-3xl">
+      
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard")}
-          className="mb-6 text-lg"
+          className="mb-6"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" />
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
 
-        <Card className="shadow-2xl border-0 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-primary/5 to-pink-500/10 text-center py-10">
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-pink-600 bg-clip-text text-transparent">
-              Create Your Wishlist
-            </CardTitle>
-            <CardDescription className="text-lg mt-3 max-w-2xl mx-auto">
-              Share your dreams with loved ones — wedding, birthday, baby shower, and more
+        <Card className="shadow-elegant">
+          <CardHeader>
+            <CardTitle className="text-3xl">Create New Wishlist</CardTitle>
+            <CardDescription>
+              Share your special moments with loved ones
             </CardDescription>
           </CardHeader>
-
-          <CardContent className="p-8 md:p-10">
-            <form onSubmit={handleSubmit} className="space-y-8">
-
-              {/* Title */}
-              <div className="space-y-3">
-                <Label htmlFor="title" className="text-lg font-semibold">
-                  Wishlist Title <span className="text-red-500">*</span>
-                </Label>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="title">Wishlist Title *</Label>
                 <Input
                   id="title"
-                  placeholder="e.g. Our Wedding Registry 2025"
+                  placeholder="e.g., Our Wedding Registry"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
-                  maxLength={100}
-                  className="h-14 text-lg"
                 />
-                <p className="text-sm text-muted-foreground text-right">
-                  {formData.title.length}/100
-                </p>
               </div>
 
-              {/* Event Type */}
-              <div className="space-y-3">
-                <Label className="text-lg font-semibold">Event Type</Label>
+              <div className="space-y-2">
+                <Label htmlFor="event_type">Event Type *</Label>
                 <Select
                   value={formData.event_type}
-                  onValueChange={(v) => setFormData({ ...formData, event_type: v as any })}
+                  onValueChange={(value) => setFormData({ ...formData, event_type: value })}
                 >
-                  <SelectTrigger className="h-14 text-lg">
+                  <SelectTrigger id="event_type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -160,32 +155,28 @@ const CreateWishlist = () => {
                     <SelectItem value="anniversary">Anniversary</SelectItem>
                     <SelectItem value="baby_shower">Baby Shower</SelectItem>
                     <SelectItem value="graduation">Graduation</SelectItem>
-                    <SelectItem value="housewarming">Housewarming</SelectItem>
-                    <SelectItem value="christmas">Christmas</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Event Date */}
-              <div className="space-y-3">
-                <Label className="text-lg font-semibold">Event Date (Optional)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="event_date">Event Date</Label>
                 <Input
+                  id="event_date"
                   type="date"
                   value={formData.event_date}
                   onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                  className="h-14 text-lg"
                 />
               </div>
 
-              {/* Currency */}
-              <div className="space-y-3">
-                <Label className="text-lg font-semibold">Currency</Label>
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency *</Label>
                 <Select
                   value={formData.currency}
-                  onValueChange={(v) => setFormData({ ...formData, currency: v as any })}
+                  onValueChange={(value) => setFormData({ ...formData, currency: value })}
                 >
-                  <SelectTrigger className="h-14 text-lg">
+                  <SelectTrigger id="currency">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -194,40 +185,39 @@ const CreateWishlist = () => {
                     <SelectItem value="GBP">GBP - British Pound</SelectItem>
                     <SelectItem value="EUR">EUR - Euro</SelectItem>
                     <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                    <SelectItem value="GHS">GHS - Ghanaian Cedi</SelectItem>
+                    <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                    <SelectItem value="ZAR">ZAR - South African Rand</SelectItem>
                     <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                    <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                    <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Description */}
-              <div className="space-y-3">
-                <Label className="text-lg font-semibold">Description (Optional)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
                 <Textarea
-                  placeholder="Share a little about your special occasion..."
+                  id="description"
+                  placeholder="Tell your guests about this special occasion..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={5}
-                  className="resize-none text-lg"
+                  rows={4}
                 />
               </div>
 
-              {/* Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6">
+              <div className="flex gap-4">
                 <Button
                   type="button"
                   variant="outline"
-                  size="lg"
-                  className="flex-1 h-14 text-lg font-medium"
                   onClick={() => navigate("/dashboard")}
+                  className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  size="lg"
-                  disabled={isLoading || !formData.title.trim()}
-                  className="flex-1 h-14 text-lg font-bold shadow-elegant"
+                  disabled={isLoading}
+                  className="flex-1 shadow-elegant"
                 >
                   {isLoading ? "Creating..." : "Create Wishlist"}
                 </Button>
@@ -235,7 +225,7 @@ const CreateWishlist = () => {
             </form>
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 };

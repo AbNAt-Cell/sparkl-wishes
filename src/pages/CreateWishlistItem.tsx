@@ -51,11 +51,12 @@ const CreateWishlistItem = () => {
   const isOwner = session?.user?.id === wishlist?.user_id;
 
   useEffect(() => {
-    if (wishlist && !isOwner) {
+    // Only check permissions once both wishlist and session are loaded
+    if (wishlist && session && !isOwner) {
       toast.error("You don't have permission to add items to this wishlist");
       navigate(`/wishlist/${id}`);
     }
-  }, [wishlist, isOwner, id, navigate]);
+  }, [wishlist, session, isOwner, id, navigate]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();

@@ -38,7 +38,7 @@ const WishlistDetail = () => {
   const { data: wishlist, isLoading: wishlistLoading } = useQuery({
     queryKey: ["wishlist", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("wishlists").select("*, profiles(full_name)").eq("id", id!).single();
+      const { data, error } = await supabase.from("wishlists").select("id, title, description, event_type, cover_image, share_code, currency, user_id, profiles(full_name)").eq("id", id!).single();
       if (error) throw error;
       return data;
     },
@@ -48,16 +48,36 @@ const WishlistDetail = () => {
   const { data: items = [], isLoading: itemsLoading, refetch: refetchItems } = useQuery({
     queryKey: ["wishlist-items", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wishlist_items")
-        .select("*, claims(id, claimer_name, claimer_email, is_anonymous, payment_status, contribution_amount, is_group_gift, created_at)")
-        .eq("wishlist_id", id!)
-        .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Error fetching items:", error);
+      // Fetch items and claims in parallel for better performance
+      const [itemsResult, claimsResult] = await Promise.all([
+        supabase
+          .from("wishlist_items")
+          .select("id, name, description, price_min, price_max, external_link, image_url, allow_group_gifting, created_at")
+          .eq("wishlist_id", id!)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("claims")
+          .select("id, wishlist_item_id, payment_status, contribution_amount, is_group_gift")
+          .eq("wishlist_items.wishlist_id", id!)
+      ]);
+
+      if (itemsResult.error) {
+        console.error("Error fetching items:", itemsResult.error);
         return [];
       }
-      return data || [];
+
+      if (claimsResult.error) {
+        console.error("Error fetching claims:", claimsResult.error);
+        return itemsResult.data || [];
+      }
+
+      // Merge claims into items for easier consumption
+      const itemsWithClaims = (itemsResult.data || []).map(item => ({
+        ...item,
+        claims: claimsResult.data?.filter(claim => claim.wishlist_item_id === item.id) || []
+      }));
+
+      return itemsWithClaims;
     },
     enabled: !!id,
   });
@@ -88,21 +108,6 @@ const WishlistDetail = () => {
   };
 
 
-  if (!wishlist) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
-        <Navbar user={session?.user} />
-        <div className="container mx-auto px-6 py-20 text-center">
-          <Card className="max-w-md mx-auto p-8">
-            <CardContent>
-              <p className="text-xl mb-6">Wishlist not found</p>
-              <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
@@ -115,23 +120,25 @@ const WishlistDetail = () => {
 
         {/* Header */}
         <Card className="mb-8 shadow-xl">
-          {wishlist.cover_image && <img src={wishlist.cover_image} alt="" className="w-full h-64 object-cover rounded-t-xl" />}
+          {wishlist?.cover_image && <img src={wishlist.cover_image} alt="" className="w-full h-64 object-cover rounded-t-xl" loading="lazy" />}
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
               <div>
-                <CardTitle className="text-3xl">{wishlist.title}</CardTitle>
-                <Badge className="mt-3">{wishlist.event_type.replace("_", " ")}</Badge>
-                <CardDescription className="mt-4 text-lg">{wishlist.description || "No description"}</CardDescription>
+                <CardTitle className="text-3xl">{wishlist?.title || "Loading..."}</CardTitle>
+                <Badge className="mt-3">{wishlist?.event_type?.replace("_", " ") || "Loading..."}</Badge>
+                <CardDescription className="mt-4 text-lg">{wishlist?.description || "No description"}</CardDescription>
               </div>
               <div className="flex gap-3">
-                <Button 
-                  variant="secondary" 
-                  size="icon"
-                  className="h-9 w-9 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110"
-                  onClick={() => navigate(`/share-wishlist/${wishlist.share_code}`)}
-                >
-                  <Share2 className="h-4 w-4" />
-                </Button>
+                {wishlist?.share_code && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-9 w-9 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110"
+                    onClick={() => navigate(`/share-wishlist/${wishlist.share_code}`)}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                )}
                 {isOwner && (
                   <Button size="lg" onClick={() => navigate(`/wishlist/${id}/item/new`)}>
                     <Plus className="w-5 h-5 mr-2" /> Add Item
@@ -159,7 +166,7 @@ const WishlistDetail = () => {
                 const claimed = isItemClaimed(item.claims, item);
                 return (
                   <Card key={item.id} className="shadow-lg hover:shadow-xl transition-shadow">
-                    {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-48 object-cover rounded-t-xl" />}
+                    {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-48 object-cover rounded-t-xl" loading="lazy" />}
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-xl">{item.name}</CardTitle>
@@ -170,7 +177,7 @@ const WishlistDetail = () => {
                     <CardContent>
                       {(item.price_min || item.price_max) && (
                         <p className="font-bold text-primary text-lg">
-                          {getCurrencySymbol(wishlist.currency)}{item.price_min || 0} {item.price_max && `– ${item.price_max}`}
+                          {getCurrencySymbol(wishlist?.currency || "USD")}{item.price_min || 0} {item.price_max && `– ${item.price_max}`}
                         </p>
                       )}
                       {item.external_link && (

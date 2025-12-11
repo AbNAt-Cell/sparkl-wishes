@@ -75,7 +75,7 @@ const Navbar = ({ user }: NavbarProps) => {
             How It Works
           </Button>
           
-          {user ? (
+          {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -98,10 +98,6 @@ const Navbar = ({ user }: NavbarProps) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button onClick={() => navigate("/auth")} className="shadow-elegant">
-              Sign Up
-            </Button>
           )}
         </div>
       </div>

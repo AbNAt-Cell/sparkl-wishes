@@ -5,17 +5,21 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-// Validate environment variables
+// Validate environment variables - don't throw error to prevent app crash
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error(
+  console.warn(
     'Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are set.'
   );
 }
 
+// Use fallback values if environment variables are missing
+const safeSupabaseUrl = SUPABASE_URL || 'https://placeholder.supabase.co';
+const safeSupabaseKey = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(safeSupabaseUrl, safeSupabaseKey, {
   auth: {
     storage: localStorage,
     persistSession: true,

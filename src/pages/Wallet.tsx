@@ -192,6 +192,20 @@ const Wallet = () => {
     rejected: "bg-red-100 text-red-800",
   };
 
+  // Don't render anything until we know the session state
+  if (session === null) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
@@ -223,9 +237,9 @@ const Wallet = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="text-4xl font-bold text-primary">
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
                     {convertedBalance > 0 ? formatCurrency(convertedBalance, displayCurrency, false) : formatCurrency(0, displayCurrency, false)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -240,7 +254,8 @@ const Wallet = () => {
                 <Button
                   onClick={() => setWithdrawDialogOpen(true)}
                   disabled={!wallet || wallet.balance <= 0}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto"
+                  size="lg"
                 >
                   <ArrowDownToLine className="w-4 h-4" />
                   Request Withdrawal

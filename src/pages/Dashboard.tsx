@@ -258,6 +258,19 @@ const Dashboard = () => {
 
 
 
+  // Show loading state while session is being determined
+  if (session === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <Navbar />
+        <div className="container mx-auto px-4 lg:px-6 py-6 flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
@@ -467,6 +480,18 @@ const Dashboard = () => {
                   <Card
                     key={wishlist.id}
                     className="cursor-pointer hover:shadow-md transition-all duration-300 border border-border/50 shadow-sm bg-white/90 backdrop-blur-sm group overflow-hidden"
+                    onMouseEnter={() => {
+                      // Prefetch wishlist data on hover for instant loading
+                      queryClient.prefetchQuery({
+                        queryKey: ["wishlist", wishlist.id],
+                        queryFn: async () => {
+                          const { data, error } = await supabase.from("wishlists").select("id, title, description, event_type, cover_image, share_code, currency, user_id, profiles(full_name)").eq("id", wishlist.id).single();
+                          if (error) throw error;
+                          return data;
+                        },
+                        staleTime: 5 * 60 * 1000,
+                      });
+                    }}
                   >
                     {wishlist.cover_image && (
                       <div className="h-48 w-full overflow-hidden relative" onClick={() => navigate(`/wishlist/${wishlist.id}`)}>

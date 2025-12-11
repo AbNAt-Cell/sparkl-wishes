@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -119,23 +119,44 @@ const Dashboard = () => {
   const { data: claimers } = useQuery({
     queryKey: ["user-claimers", session?.user?.id],
     queryFn: async () => {
+      // First get all wishlist IDs for this user
+      const { data: userWishlists, error: wishlistsError } = await supabase
+        .from("wishlists")
+        .select("id")
+        .eq("user_id", session!.user!.id);
+
+      if (wishlistsError) throw wishlistsError;
+
+      const wishlistIds = userWishlists?.map(w => w.id) || [];
+
+      if (wishlistIds.length === 0) return [];
+
+      // Then get claims for items in those wishlists
       const { data, error } = await supabase
         .from("claims")
         .select(`
-          *,
+          id,
+          claimer_name,
+          claimer_email,
+          is_anonymous,
+          payment_status,
+          contribution_amount,
+          is_group_gift,
+          created_at,
           wishlist_items(
+            id,
             name,
             price_min,
             price_max,
             wishlist_id,
-            wishlists(title, currency, user_id)
+            wishlists(title, currency)
           )
         `)
-        .eq("wishlist_items.wishlists.user_id", session!.user!.id)
+        .in("wishlist_items.wishlist_id", wishlistIds)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data?.filter(claim => claim.wishlist_items?.wishlists?.user_id === session!.user!.id);
+      return data || [];
     },
     enabled: !!session?.user?.id,
   });
@@ -228,14 +249,13 @@ const Dashboard = () => {
   const totalWishlists = wishlists?.length || 0;
   const totalBalance = wallets?.[0]?.balance || 0;
 
-  // Convert wallet balance to user's display currency
+  // Convert wallet balance to user's display currency (memoized)
   const walletCurrency = wallets && wallets.length > 0 ? (wallets[0].currency || "USD") : "USD";
-  const convertedTotalBalance = convertCurrency(totalBalance, walletCurrency, userCurrency);
+  const convertedTotalBalance = useMemo(() =>
+    convertCurrency(totalBalance, walletCurrency, userCurrency),
+    [convertCurrency, totalBalance, walletCurrency, userCurrency]
+  );
 
-  // Debug logging for dashboard wallet conversion
-  useEffect(() => {
-    console.log("Dashboard wallet conversion:", { totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected });
-  }, [totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected]);
 
   if (session === null) {
     return (

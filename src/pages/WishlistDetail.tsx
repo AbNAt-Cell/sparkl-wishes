@@ -50,7 +50,7 @@ const WishlistDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wishlist_items")
-        .select("*, claims(*)")
+        .select("*, claims(id, claimer_name, claimer_email, is_anonymous, payment_status, contribution_amount, is_group_gift, created_at)")
         .eq("wishlist_id", id!)
         .order("created_at", { ascending: false });
       if (error) {

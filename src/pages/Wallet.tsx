@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -100,20 +100,10 @@ const Wallet = () => {
   
   // Always convert, even if wallet is null (use 0)
   const walletBalance = wallet?.balance || 0;
-  const convertedBalance = convertCurrency(walletBalance, walletCurrency, displayCurrency);
-  
-  // Debug logging
-  useEffect(() => {
-    console.log("Wallet conversion state:", {
-      walletExists: !!wallet,
-      walletBalance,
-      walletCurrency,
-      displayCurrency,
-      convertedBalance,
-      detectedCurrency,
-      isAutoDetected,
-    });
-  }, [wallet, walletBalance, walletCurrency, displayCurrency, convertedBalance, detectedCurrency, isAutoDetected]);
+  const convertedBalance = useMemo(() =>
+    convertCurrency(walletBalance, walletCurrency, displayCurrency),
+    [convertCurrency, walletBalance, walletCurrency, displayCurrency]
+  );
 
   const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ["wallet-transactions", wallet?.id],

@@ -152,11 +152,7 @@ const Profile = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : (
+            {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex flex-col items-center gap-4 pb-6 border-b border-border">
                   <Avatar className="w-24 h-24 shadow-glow">

@@ -257,16 +257,6 @@ const Dashboard = () => {
   );
 
 
-  if (session === null) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-        <Navbar />
-        <div className="container mx-auto px-4 lg:px-6 py-6 flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <TooltipProvider>

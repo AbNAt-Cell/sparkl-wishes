@@ -43,7 +43,7 @@ const Navbar = ({ user }: NavbarProps) => {
     <nav className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50">
       <div className="container mx-auto safe-container h-16 flex items-center justify-between">
         <button
-          onClick={() => navigate(user ? "/dashboard" : "/")}
+          onClick={() => navigate("/")}
           className="flex items-center gap-2 font-semibold text-lg hover:opacity-80 transition-opacity"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-hero flex items-center justify-center shadow-glow">

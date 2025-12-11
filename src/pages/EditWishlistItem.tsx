@@ -144,13 +144,6 @@ const EditWishlistItem = () => {
     }
   };
 
-  if (itemLoading || !wishlist || !item) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">

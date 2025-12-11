@@ -132,13 +132,6 @@ const AdminClaims: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[30vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   const getStatusBadge = (claim: any) => {
     const isExpired = claim.expires_at && new Date(claim.expires_at) < new Date() && claim.payment_status === "pending";

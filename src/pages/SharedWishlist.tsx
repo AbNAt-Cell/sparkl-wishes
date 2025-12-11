@@ -74,13 +74,6 @@ const SharedWishlist = () => {
     navigate(`/claim/${itemId}/${shareCode}`);
   };
 
-  if (wishlistLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   if (!wishlist) {
     return (
@@ -226,12 +219,7 @@ const SharedWishlist = () => {
             </div>
           </div>
           
-          {itemsLoading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-600 mb-3" />
-              <p className="text-sm text-muted-foreground">Loading items...</p>
-            </div>
-          ) : items && items.length > 0 ? (
+          {items && items.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {items.map((item) => {
                 const isClaimed = isItemClaimed(item.claims, item);

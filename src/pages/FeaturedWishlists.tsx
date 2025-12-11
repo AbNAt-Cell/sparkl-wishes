@@ -74,11 +74,7 @@ const FeaturedWishlists = () => {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[40vh]">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : !featuredWishlists || featuredWishlists.length === 0 ? (
+        {!featuredWishlists || featuredWishlists.length === 0 ? (
           <Card className="text-center py-16">
             <CardContent>
               <Gift className="w-16 h-16 mx-auto text-muted-foreground mb-4" />

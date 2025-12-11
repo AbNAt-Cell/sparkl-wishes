@@ -26,13 +26,6 @@ export const AdminGuard: React.FC<Props> = ({ children }) => {
     check();
   }, []);
 
-  if (checking) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   if (!authorized) {
     navigate("/auth");

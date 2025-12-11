@@ -38,13 +38,6 @@ const AdminSettings: React.FC = () => {
     setPremiumCurrency(data.premium.currency);
   }, [data]);
 
-  if (isLoading || !data) {
-    return (
-      <div className="py-12 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   const toggleMethod = (m: string, checked: boolean) => {
     setAllowedMethods(prev => checked ? Array.from(new Set([...prev, m])) : prev.filter(x => x !== m));

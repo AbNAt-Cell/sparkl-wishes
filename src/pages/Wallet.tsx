@@ -184,16 +184,6 @@ const Wallet = () => {
     }
   };
 
-  if (walletLoading || !session) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -308,11 +298,7 @@ const Wallet = () => {
             <CardDescription>Your wallet activity</CardDescription>
           </CardHeader>
           <CardContent>
-            {transactionsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              </div>
-            ) : transactions && transactions.length > 0 ? (
+            {transactions && transactions.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>

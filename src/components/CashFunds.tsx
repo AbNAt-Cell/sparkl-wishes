@@ -216,13 +216,6 @@ export const CashFunds: React.FC<CashFundsProps> = ({ wishlistId, currency, isOw
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   if (!funds || funds.length === 0) {
     if (!isOwner) return null;

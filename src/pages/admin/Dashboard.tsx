@@ -38,13 +38,6 @@ const AdminDashboard: React.FC = () => {
     },
   });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[30vh] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

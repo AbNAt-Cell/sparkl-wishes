@@ -72,3 +72,4 @@ Dokploy uses a reverse proxy (usually Traefik or Nginx). The container port 80 s
    docker exec -it <container-id> ls -la /usr/share/nginx/html
    ```
 
+

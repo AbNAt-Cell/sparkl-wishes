@@ -86,3 +86,4 @@ The `server.js` file already binds to `0.0.0.0`, so you're all set if you choose
 
 **Stick with Nginx (Option 1)** - it's already configured and is the best choice for a static React app. Only switch to Node.js if you encounter specific issues with nginx on Dokploy.
 
+

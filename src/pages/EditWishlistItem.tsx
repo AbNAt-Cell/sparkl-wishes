@@ -78,7 +78,8 @@ const EditWishlistItem = () => {
   }, [item]);
 
   useEffect(() => {
-    if (wishlist && !isOwner) {
+    // Only check permissions once both wishlist and session are loaded
+    if (wishlist && session && !isOwner) {
       toast.error("You don't have permission to edit items in this wishlist");
       navigate(`/wishlist/${id}`);
     }
@@ -86,7 +87,7 @@ const EditWishlistItem = () => {
       toast.error("Cannot edit claimed items");
       navigate(`/wishlist/${id}`);
     }
-  }, [wishlist, isOwner, item, isClaimed, id, navigate]);
+  }, [wishlist, session, isOwner, item, isClaimed, id, navigate]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -144,6 +145,20 @@ const EditWishlistItem = () => {
     }
   };
 
+
+  // Don't render anything until we know the session state
+  if (session === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">

@@ -152,8 +152,7 @@ const Profile = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex flex-col items-center gap-4 pb-6 border-b border-border">
                   <Avatar className="w-24 h-24 shadow-glow">
                     <AvatarImage src={formData.avatar_url} />
@@ -240,7 +239,6 @@ const Profile = () => {
                   </Button>
                 </div>
               </form>
-            )}
           </CardContent>
         </Card>
       </main>

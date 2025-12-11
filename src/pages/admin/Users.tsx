@@ -156,97 +156,95 @@ const AdminUsers: React.FC = () => {
           />
         </div>
 
-        {
-          <>
-            <div className="divide-y">
-              {paginatedUsers.map(user => (
-                <div key={user.id} className="py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img
-                      src={user.avatar_url || "https://placehold.co/40x40?text=%F0%9F%91%A4"}
-                      alt="avatar"
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate max-w-[220px] sm:max-w-[340px] flex items-center gap-2">
-                        {user.full_name || "Unnamed"}
-                        {user.is_premium && (
-                          <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs">
-                            <Crown className="w-3 h-3 mr-1" />
-                            Premium
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate max-w-[240px]">{user.id}</div>
+        <>
+          <div className="divide-y">
+            {paginatedUsers.map(user => (
+              <div key={user.id} className="py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img
+                    src={user.avatar_url || "https://placehold.co/40x40?text=%F0%9F%91%A4"}
+                    alt="avatar"
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate max-w-[220px] sm:max-w-[340px] flex items-center gap-2">
+                      {user.full_name || "Unnamed"}
+                      {user.is_premium && (
+                        <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs">
+                          <Crown className="w-3 h-3 mr-1" />
+                          Premium
+                        </Badge>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap justify-end">
-                    <Button
-                      variant={user.is_premium ? "outline" : "default"}
-                      size="sm"
-                      onClick={() => handleAction(user.id, user.is_premium ? "unpremium" : "premium", user.is_premium || false)}
-                      disabled={userActionMutation.isPending}
-                      className={!user.is_premium ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" : ""}
-                    >
-                      <Crown className="w-4 h-4 mr-1" />
-                      {user.is_premium ? "Remove Premium" : "Make Premium"}
-                    </Button>
-                    <Button
-                      variant={user.is_admin ? "outline" : "default"}
-                      size="sm"
-                      onClick={() => handleAction(user.id, user.is_admin ? "demote" : "promote", user.is_admin || false)}
-                      disabled={userActionMutation.isPending}
-                    >
-                      {user.is_admin ? <ShieldX className="w-4 h-4 mr-1" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
-                      {user.is_admin ? "Demote" : "Promote"}
-                    </Button>
-                    <Button
-                      variant={user.is_banned ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleAction(user.id, user.is_banned ? "unban" : "ban", user.is_banned || false)}
-                      disabled={userActionMutation.isPending}
-                    >
-                      <Ban className="w-4 h-4 mr-1" />
-                      {user.is_banned ? "Unban" : "Ban"}
-                    </Button>
+                    <div className="text-xs text-muted-foreground truncate max-w-[240px]">{user.id}</div>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="mt-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                      <PaginationItem key={p}>
-                        <PaginationLink
-                          onClick={() => setPage(p)}
-                          isActive={page === p}
-                          className="cursor-pointer"
-                        >
-                          {p}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <Button
+                    variant={user.is_premium ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => handleAction(user.id, user.is_premium ? "unpremium" : "premium", user.is_premium || false)}
+                    disabled={userActionMutation.isPending}
+                    className={!user.is_premium ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" : ""}
+                  >
+                    <Crown className="w-4 h-4 mr-1" />
+                    {user.is_premium ? "Remove Premium" : "Make Premium"}
+                  </Button>
+                  <Button
+                    variant={user.is_admin ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => handleAction(user.id, user.is_admin ? "demote" : "promote", user.is_admin || false)}
+                    disabled={userActionMutation.isPending}
+                  >
+                    {user.is_admin ? <ShieldX className="w-4 h-4 mr-1" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
+                    {user.is_admin ? "Demote" : "Promote"}
+                  </Button>
+                  <Button
+                    variant={user.is_banned ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleAction(user.id, user.is_banned ? "unban" : "ban", user.is_banned || false)}
+                    disabled={userActionMutation.isPending}
+                  >
+                    <Ban className="w-4 h-4 mr-1" />
+                    {user.is_banned ? "Unban" : "Ban"}
+                  </Button>
+                </div>
               </div>
-            )}
-          </>
-        )}
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        onClick={() => setPage(p)}
+                        isActive={page === p}
+                        className="cursor-pointer"
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </>
       </CardContent>
 
       <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>

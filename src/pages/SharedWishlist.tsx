@@ -5,11 +5,9 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Loader2, Gift, ExternalLink, Info, Heart, CheckCircle2, Sparkles, Plus } from "lucide-react";
+import { Calendar, Loader2, Gift, ExternalLink, Info, Heart, CheckCircle2, Sparkles, Plus, Share2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { ClaimItemDialog } from "@/components/ClaimItemDialog";
 import { getCurrencySymbol, isItemClaimed, getCompletedClaim, formatCurrency, formatDate } from "@/lib/utils";
-import { ShareButtons } from "@/components/ShareButtons";
 import { GuestBook } from "@/components/GuestBook";
 import { CashFunds } from "@/components/CashFunds";
 import {
@@ -24,13 +22,6 @@ const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
-  const [claimDialogOpen, setClaimDialogOpen] = React.useState(false);
-  const [selectedItem, setSelectedItem] = React.useState<{ 
-    id: string; 
-    name: string; 
-    price: number | null;
-    allowGroupGifting: boolean;
-  } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -79,9 +70,8 @@ const SharedWishlist = () => {
     enabled: !!wishlist?.id,
   });
 
-  const handleClaimClick = (itemId: string, itemName: string, price: number | null, allowGroupGifting: boolean) => {
-    setSelectedItem({ id: itemId, name: itemName, price, allowGroupGifting });
-    setClaimDialogOpen(true);
+  const handleClaimClick = (itemId: string) => {
+    navigate(`/claim/${itemId}/${shareCode}`);
   };
 
   if (wishlistLoading) {
@@ -215,11 +205,14 @@ const SharedWishlist = () => {
             <h2 className="text-lg font-semibold">Items ({items?.length || 0})</h2>
             <div className="flex items-center gap-2">
               {wishlist && (
-                <ShareButtons
-                  shareUrl={window.location.href}
-                  title={wishlist.title}
-                  description={wishlist.description || ""}
-                />
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-9 w-9 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110"
+                  onClick={() => navigate(`/share-wishlist/${shareCode}`)}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
               )}
               <Button 
                 variant="default" 
@@ -320,7 +313,7 @@ const SharedWishlist = () => {
                         <Button
                           className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
                           size="sm"
-                          onClick={() => handleClaimClick(item.id, item.name, item.price_max, item.allow_group_gifting || false)}
+                          onClick={() => handleClaimClick(item.id)}
                         >
                           <Gift className="w-4 h-4 mr-2" />
                           Claim Gift
@@ -376,19 +369,6 @@ const SharedWishlist = () => {
         )} */}
       </main>
 
-      {selectedItem && (
-        <ClaimItemDialog
-          open={claimDialogOpen}
-          onOpenChange={setClaimDialogOpen}
-          itemId={selectedItem.id}
-          itemName={selectedItem.name}
-          itemPrice={selectedItem.price}
-          onClaimSuccess={refetchItems}
-          currentUserId={session?.user?.id}
-          wishlistOwnerId={wishlist?.user_id}
-          allowGroupGifting={selectedItem.allowGroupGifting}
-        />
-      )}
     </div>
     </TooltipProvider>
   );

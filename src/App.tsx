@@ -17,6 +17,10 @@ import WishlistDetail from "./pages/WishlistDetail";
 import SharedWishlist from "./pages/SharedWishlist";
 import FeaturedWishlists from "./pages/FeaturedWishlists";
 import NotFound from "./pages/NotFound";
+import CreateWishlistItem from "./pages/CreateWishlistItem";
+import EditWishlistItem from "./pages/EditWishlistItem";
+import ClaimWishlistItem from "./pages/ClaimWishlistItem";
+import ShareWishlist from "./pages/ShareWishlist";
 import AdminLayout from "./pages/admin/Layout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
@@ -46,7 +50,12 @@ const App = () => (
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/wishlist/:id" element={<WishlistDetail />} />
+          <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
+          <Route path="/wishlist/:id/item/:itemId/edit" element={<EditWishlistItem />} />
           <Route path="/share/:shareCode" element={<SharedWishlist />} />
+          <Route path="/claim/:itemId" element={<ClaimWishlistItem />} />
+          <Route path="/claim/:itemId/:shareCode" element={<ClaimWishlistItem />} />
+          <Route path="/share-wishlist/:shareCode" element={<ShareWishlist />} />
           <Route path="/featured" element={<FeaturedWishlists />} />
           <Route
             path="/admin"

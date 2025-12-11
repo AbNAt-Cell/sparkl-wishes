@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import Navbar from "@/components/Navbar";
-import { ShareButtons } from "@/components/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -469,11 +468,14 @@ const Dashboard = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                         <div className="absolute top-3 right-3 flex gap-2">
                     <div onClick={(e) => e.stopPropagation()}>
-                      <ShareButtons
-                        shareUrl={`${window.location.origin}/share/${wishlist.share_code}`}
-                        title={wishlist.title}
-                        description={wishlist.description || ""}
-                      />
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-8 w-8 bg-white/90 backdrop-blur-sm hover:bg-white"
+                        onClick={() => navigate(`/share-wishlist/${wishlist.share_code}`)}
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
                     </div>
                           <Tooltip>
                             <TooltipTrigger asChild>

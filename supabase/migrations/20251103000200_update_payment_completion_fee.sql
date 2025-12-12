@@ -1,3 +1,33 @@
+-- Create admin wallet for platform fees
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_user_meta_data)
+VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  'admin@sparkl-wishes.com',
+  crypt('admin123', gen_salt('bf')),
+  NOW(),
+  NOW(),
+  NOW(),
+  '{"role": "admin"}'::jsonb
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.profiles (id, full_name, is_admin, created_at, updated_at)
+VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  'Platform Admin',
+  true,
+  NOW(),
+  NOW()
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.user_wallets (user_id, balance, currency, created_at, updated_at)
+VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  0,
+  'USD',
+  NOW(),
+  NOW()
+) ON CONFLICT (user_id) DO NOTHING;
+
 -- Update payment completion trigger to credit net of platform fee
 create or replace function public.handle_payment_completion()
 returns trigger
@@ -44,20 +74,47 @@ begin
 
       select id into owner_wallet_id from public.user_wallets where user_id = wishlist_owner_id;
 
-      -- Credit net amount
+      -- Credit net amount to owner
       update public.user_wallets
       set balance = balance + net_amount,
           updated_at = now()
       where id = owner_wallet_id;
 
-      -- Record transaction with description and fee note
+      -- Record transaction for owner with description and fee note
       insert into public.wallet_transactions (
         wallet_id, amount, type, status, reference, description, claim_id
       ) values (
         owner_wallet_id, net_amount, 'credit', 'completed', NEW.payment_reference,
-        'Payment for ' || (select name from wishlist_items where id = NEW.item_id) || ' (net of fees)',
+        'Payment for ' || (select name from wishlist_items where id = NEW.item_id) || ' (net of ' || fee_percent * 100 || '% platform fee)',
         NEW.id
       );
+
+      -- Credit platform fee to admin wallet (if fee > 0)
+      if fee_amount > 0 then
+        -- Create admin wallet if it doesn't exist (admin user ID: fixed UUID)
+        insert into public.user_wallets (user_id, balance, currency)
+        values ('00000000-0000-0000-0000-000000000000', 0, 'USD')
+        on conflict (user_id) do nothing;
+
+        -- Get admin wallet ID
+        declare admin_wallet_id uuid;
+        select id into admin_wallet_id from public.user_wallets where user_id = '00000000-0000-0000-0000-000000000000';
+
+        -- Credit platform fee
+        update public.user_wallets
+        set balance = balance + fee_amount,
+            updated_at = now()
+        where id = admin_wallet_id;
+
+        -- Record platform fee transaction
+        insert into public.wallet_transactions (
+          wallet_id, amount, type, status, reference, description, claim_id
+        ) values (
+          admin_wallet_id, fee_amount, 'credit', 'completed', NEW.payment_reference,
+          'Platform fee for ' || (select name from wishlist_items where id = NEW.item_id),
+          NEW.id
+        );
+      end if;
     end if;
   end if;
 

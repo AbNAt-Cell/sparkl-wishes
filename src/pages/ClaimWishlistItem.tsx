@@ -319,6 +319,13 @@ const ClaimWishlistItem = () => {
         return;
       }
 
+      // Ensure user is authenticated for claims
+      if (!session) {
+        toast.error("Please sign in to claim items");
+        setIsSubmitting(false);
+        return;
+      }
+
       if (isOwnItem) {
         toast.error("You cannot claim items from your own wishlist");
         setIsSubmitting(false);

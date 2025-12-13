@@ -313,6 +313,18 @@ const ClaimWishlistItem = () => {
     setIsSubmitting(true);
 
     try {
+      if (!itemId) {
+        toast.error("Invalid item ID");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (isOwnItem) {
+        toast.error("You cannot claim items from your own wishlist");
+        setIsSubmitting(false);
+        return;
+      }
+
       if (!formData.name || !formData.email) {
         toast.error("Please fill in your name and email");
         setIsSubmitting(false);
@@ -402,6 +414,22 @@ const ClaimWishlistItem = () => {
         claimUserId = user?.id ?? null;
       }
 
+      console.log("Attempting to create claim with data:", {
+        item_id: itemId!,
+        user_id: claimUserId,
+        claimer_name: formData.name,
+        claimer_email: formData.email,
+        claimer_phone: formData.phone,
+        notes: formData.notes || null,
+        is_anonymous: formData.isAnonymous,
+        payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
+        expires_at: itemPrice && itemPrice > 0
+          ? new Date(Date.now() + 20 * 60 * 1000).toISOString()
+          : null,
+        is_group_gift: allowGroupGifting,
+        contribution_amount: paymentAmount,
+      });
+
       const { data: claimData, error: claimError } = await supabase
         .from("claims")
         .insert({
@@ -413,8 +441,8 @@ const ClaimWishlistItem = () => {
           notes: formData.notes || null,
           is_anonymous: formData.isAnonymous,
           payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
-          expires_at: itemPrice && itemPrice > 0 
-            ? new Date(Date.now() + 20 * 60 * 1000).toISOString() 
+          expires_at: itemPrice && itemPrice > 0
+            ? new Date(Date.now() + 20 * 60 * 1000).toISOString()
             : null,
           is_group_gift: allowGroupGifting,
           contribution_amount: paymentAmount,
@@ -422,7 +450,10 @@ const ClaimWishlistItem = () => {
         .select()
         .single();
 
-      if (claimError) throw claimError;
+      if (claimError) {
+        console.error("Claim insertion error:", claimError);
+        throw claimError;
+      }
 
       setClaimId(claimData.id);
       toast.success("Item claimed successfully!");
@@ -678,7 +709,6 @@ const ClaimWishlistItem = () => {
                           type="tel"
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          required
                           placeholder="+1234567890"
                         />
                       </div>

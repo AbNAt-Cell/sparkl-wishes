@@ -114,10 +114,25 @@ const CreateWishlistItem = () => {
   };
 
 
+  // Show loading state while data is being fetched
+  if (!wishlist) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <Navbar user={session?.user} />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session?.user} />
-      
+
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         <Button variant="ghost" onClick={() => navigate(`/wishlist/${id}`)} className="mb-6">
           <ArrowLeft className="w-5 h-5 mr-2" /> Back to Wishlist
@@ -158,7 +173,7 @@ const CreateWishlistItem = () => {
                   <PriceInput
                     value={itemFormData.price_min}
                     onChange={(v) => setItemFormData({ ...itemFormData, price_min: v })}
-                    currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")}
+                    currencySymbol={getCurrencySymbol(wishlist?.currency || "NGN")}
                     className="h-14 text-lg"
                   />
                 </div>
@@ -167,7 +182,7 @@ const CreateWishlistItem = () => {
                   <PriceInput
                     value={itemFormData.price_max}
                     onChange={(v) => setItemFormData({ ...itemFormData, price_max: v })}
-                    currencySymbol={getCurrencySymbol(wishlist.currency || "NGN")}
+                    currencySymbol={getCurrencySymbol(wishlist?.currency || "NGN")}
                     className="h-14 text-lg"
                   />
                 </div>

@@ -24,12 +24,12 @@ const ShareWishlist = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const { data: wishlist } = useQuery({
-    queryKey: ["shared-wishlist", shareCode],
+  const { data: wishlist, isLoading, error } = useQuery({
+    queryKey: ["share-wishlist", shareCode],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wishlists")
-        .select("*")
+        .select("id, title, share_code")
         .eq("share_code", shareCode!)
         .single();
       if (error) throw error;
@@ -81,13 +81,29 @@ const ShareWishlist = () => {
     toast.success("QR code downloaded!");
   };
 
-  if (!wishlist) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !wishlist) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6">
-            <p className="text-center">Wishlist not found</p>
-            <Button onClick={() => navigate("/")} className="w-full mt-4">
+            <p className="text-center text-red-600 font-medium mb-4">
+              {error ? "Failed to load wishlist" : "Wishlist not found"}
+            </p>
+            <p className="text-center text-muted-foreground mb-6">
+              The share link may be invalid or expired.
+            </p>
+            <Button onClick={() => navigate("/")} className="w-full">
               Go Home
             </Button>
           </CardContent>

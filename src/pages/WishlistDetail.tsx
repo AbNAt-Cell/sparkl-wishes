@@ -35,7 +35,7 @@ const WishlistDetail = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const { data: wishlist, isLoading: wishlistLoading } = useQuery({
+  const { data: wishlist, isLoading: wishlistLoading, error } = useQuery({
     queryKey: ["wishlist", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("wishlists").select("id, title, description, event_type, cover_image, share_code, currency, user_id, profiles(full_name)").eq("id", id!).single();
@@ -109,6 +109,44 @@ const WishlistDetail = () => {
 
 
 
+  // Show error state if query failed
+  if (error) {
+    console.log("WishlistDetail: Showing error state", error);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <Navbar user={session?.user} />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <Card className="max-w-md">
+            <CardContent className="pt-6">
+              <p className="text-center text-red-600 font-medium mb-4">Failed to load wishlist</p>
+              <p className="text-center text-muted-foreground mb-6">
+                The wishlist may not exist or you may not have permission to view it.
+              </p>
+              <Button onClick={() => navigate("/dashboard")} className="w-full">
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while wishlist data is being fetched
+  if (wishlistLoading || !wishlist) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
+        <Navbar user={session?.user} />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading wishlist...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session?.user} />
@@ -120,13 +158,13 @@ const WishlistDetail = () => {
 
         {/* Header */}
         <Card className="mb-8 shadow-xl">
-          {wishlist?.cover_image && <img src={wishlist.cover_image} alt="" className="w-full h-64 object-cover rounded-t-xl" loading="lazy" />}
+          {wishlist.cover_image && <img src={wishlist.cover_image} alt="" className="w-full h-64 object-cover rounded-t-xl" loading="lazy" />}
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
               <div>
-                <CardTitle className="text-3xl">{wishlist?.title || "Loading..."}</CardTitle>
-                <Badge className="mt-3">{wishlist?.event_type?.replace("_", " ") || "Loading..."}</Badge>
-                <CardDescription className="mt-4 text-lg">{wishlist?.description || "No description"}</CardDescription>
+                <CardTitle className="text-3xl">{wishlist.title}</CardTitle>
+                <Badge className="mt-3">{wishlist.event_type.replace("_", " ")}</Badge>
+                <CardDescription className="mt-4 text-lg">{wishlist.description || "No description"}</CardDescription>
               </div>
               <div className="flex gap-3">
                 {wishlist?.share_code && (

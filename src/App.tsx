@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigationType, useLocation } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -32,6 +32,85 @@ import AdminWithdrawals from "./pages/admin/Withdrawals";
 import AdminSettings from "./pages/admin/Settings";
 import AdminGuard from "@/components/AdminGuard";
 
+// Global Page Loader Component
+const GlobalPageLoader = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigationType = useNavigationType();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Show loader for programmatic navigation (PUSH, REPLACE)
+    if (navigationType !== 'POP') {
+      setIsLoading(true);
+
+      // Hide loader after a short delay to simulate page loading
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 800); // Adjust timing as needed
+
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, navigationType]);
+
+  if (!isLoading) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative">
+          <div className="w-12 h-12 border-4 border-primary/20 rounded-full animate-spin border-t-primary"></div>
+          <div className="absolute inset-0 w-12 h-12 border-4 border-transparent rounded-full animate-ping border-t-primary/40"></div>
+        </div>
+        <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+      </div>
+    </div>
+  );
+};
+
+// App Content Component (needs to be inside Router for hooks)
+const AppContent = () => (
+  <>
+    <GlobalPageLoader />
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/create-wishlist" element={<CreateWishlist />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/wallet" element={<Wallet />} />
+      <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/wishlist/:id" element={<WishlistDetail />} />
+      <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
+      <Route path="/wishlist/:id/item/:itemId/edit" element={<EditWishlistItem />} />
+      <Route path="/share/:shareCode" element={<SharedWishlist />} />
+      <Route path="/claim/:itemId" element={<ClaimWishlistItem />} />
+      <Route path="/claim/:itemId/:shareCode" element={<ClaimWishlistItem />} />
+      <Route path="/share-wishlist/:shareCode" element={<ShareWishlist />} />
+      <Route path="/featured" element={<FeaturedWishlists />} />
+      <Route
+        path="/admin"
+        element={
+          <AdminGuard>
+            <AdminLayout />
+          </AdminGuard>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="wishlists" element={<AdminWishlists />} />
+        <Route path="items" element={<AdminItems />} />
+        <Route path="claims" element={<AdminClaims />} />
+        <Route path="withdrawals" element={<AdminWithdrawals />} />
+        <Route path="settings" element={<AdminSettings />} />
+      </Route>
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </>
+);
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -56,46 +135,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/create-wishlist" element={<CreateWishlist />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/wishlist/:id" element={<WishlistDetail />} />
-          <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
-          <Route path="/wishlist/:id/item/:itemId/edit" element={<EditWishlistItem />} />
-          <Route path="/share/:shareCode" element={<SharedWishlist />} />
-          <Route path="/claim/:itemId" element={<ClaimWishlistItem />} />
-          <Route path="/claim/:itemId/:shareCode" element={<ClaimWishlistItem />} />
-          <Route path="/share-wishlist/:shareCode" element={<ShareWishlist />} />
-          <Route path="/featured" element={<FeaturedWishlists />} />
-          <Route
-            path="/admin"
-            element={
-              <AdminGuard>
-                <AdminLayout />
-              </AdminGuard>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="wishlists" element={<AdminWishlists />} />
-            <Route path="items" element={<AdminItems />} />
-            <Route path="claims" element={<AdminClaims />} />
-            <Route path="withdrawals" element={<AdminWithdrawals />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+          <AppContent />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 

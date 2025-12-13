@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import Navbar from "@/components/Navbar";
+import { ShareButtons } from "@/components/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate, getCurrencySymbol } from "@/lib/utils";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
@@ -32,12 +33,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [wishlistToDelete, setWishlistToDelete] = useState<string | null>(null);
-  const [isUpgradingPremium, setIsUpgradingPremium] = useState(false);
+  const [isPayingPremium, setIsPayingPremium] = useState(false);
   const queryClient = useQueryClient();
   
   // Get user's currency preference
@@ -119,44 +122,23 @@ const Dashboard = () => {
   const { data: claimers } = useQuery({
     queryKey: ["user-claimers", session?.user?.id],
     queryFn: async () => {
-      // First get all wishlist IDs for this user
-      const { data: userWishlists, error: wishlistsError } = await supabase
-        .from("wishlists")
-        .select("id")
-        .eq("user_id", session!.user!.id);
-
-      if (wishlistsError) throw wishlistsError;
-
-      const wishlistIds = userWishlists?.map(w => w.id) || [];
-
-      if (wishlistIds.length === 0) return [];
-
-      // Then get claims for items in those wishlists
       const { data, error } = await supabase
         .from("claims")
         .select(`
-          id,
-          claimer_name,
-          claimer_email,
-          is_anonymous,
-          payment_status,
-          contribution_amount,
-          is_group_gift,
-          created_at,
+          *,
           wishlist_items(
-            id,
             name,
             price_min,
             price_max,
             wishlist_id,
-            wishlists(title, currency)
+            wishlists(title, currency, user_id)
           )
         `)
-        .in("wishlist_items.wishlist_id", wishlistIds)
+        .eq("wishlist_items.wishlists.user_id", session!.user!.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return data?.filter(claim => claim.wishlist_items?.wishlists?.user_id === session!.user!.id);
     },
     enabled: !!session?.user?.id,
   });
@@ -187,55 +169,6 @@ const Dashboard = () => {
     setWishlistToDelete(null);
   };
 
-  // Handle premium subscription
-  const handleUpgradePremium = async () => {
-    if (!session?.user?.email) {
-      toast.error("Please log in to upgrade to premium");
-      return;
-    }
-
-    setIsUpgradingPremium(true);
-    try {
-      const response = await supabase.functions.invoke("premium-subscription", {
-        body: {
-          action: "initialize",
-          userId: session.user.id,
-          email: session.user.email,
-          callbackUrl: `${window.location.origin}/dashboard?premium_callback=true`,
-        },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || "Failed to initialize payment");
-      }
-
-      const data = response.data;
-      if (data?.authorization_url) {
-        window.location.href = data.authorization_url;
-      } else {
-        throw new Error("No payment URL received");
-      }
-    } catch (error) {
-      console.error("Premium upgrade error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to start premium upgrade");
-    } finally {
-      setIsUpgradingPremium(false);
-    }
-  };
-
-  // Check for premium callback
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("premium_callback") === "true") {
-      // Clear the URL parameter
-      window.history.replaceState({}, "", "/dashboard");
-      
-      // Refresh profile data to check premium status
-      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
-      toast.success("Welcome to Premium! Your subscription is now active.");
-    }
-  }, [queryClient]);
-
   const eventTypeColors = {
     wedding: "bg-primary/10 text-primary border-primary/20",
     birthday: "bg-secondary/10 text-secondary border-secondary/20",
@@ -249,28 +182,26 @@ const Dashboard = () => {
   const totalWishlists = wishlists?.length || 0;
   const totalBalance = wallets?.[0]?.balance || 0;
 
-  // Convert wallet balance to user's display currency (memoized)
+  // Convert wallet balance to user's display currency
   const walletCurrency = wallets && wallets.length > 0 ? (wallets[0].currency || "USD") : "USD";
-  const convertedTotalBalance = useMemo(() =>
-    convertCurrency(totalBalance, walletCurrency, userCurrency),
-    [convertCurrency, totalBalance, walletCurrency, userCurrency]
-  );
+  const convertedTotalBalance = convertCurrency(totalBalance, walletCurrency, userCurrency);
 
+  // Debug logging for dashboard wallet conversion
+  useEffect(() => {
+    console.log("Dashboard wallet conversion:", { totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected });
+  }, [totalBalance, walletCurrency, userCurrency, convertedTotalBalance, isAutoDetected]);
 
-
-  // Show loading state while session is being determined
   if (session === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
         <Navbar />
         <div className="container mx-auto px-4 lg:px-6 py-6 flex items-center justify-center min-h-[50vh]">
-          <div className="text-center">
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </div>
     );
   }
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
@@ -407,20 +338,66 @@ const Dashboard = () => {
                               Get your wishlists featured on the homepage
                             </p>
                             <p className="text-lg font-bold text-purple-700 mb-2">
-                              {formatCurrency(appSettings.premium.price, appSettings.premium.currency)}/month
+                              {formatCurrency(appSettings.premium.price, appSettings.premium.currency)}
                             </p>
                             <Button 
                               size="sm"
                               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                              onClick={handleUpgradePremium}
-                              disabled={isUpgradingPremium}
+                              disabled={isPayingPremium}
+                              onClick={() => {
+                                if (!session?.user?.email) {
+                                  toast.error("Please ensure you're logged in with a valid email");
+                                  return;
+                                }
+                                // @ts-expect-error - Paystack loaded via script
+                                if (!window.PaystackPop) {
+                                  toast.error("Payment system not loaded. Please refresh.");
+                                  return;
+                                }
+                                setIsPayingPremium(true);
+                                const amountInKobo = Math.round(appSettings.premium.price * 100);
+                                const reference = `premium_${session.user.id}_${Date.now()}`;
+                                try {
+                                  // @ts-expect-error - Paystack loaded via script
+                                  const handler = window.PaystackPop.setup({
+                                    key: PAYSTACK_PUBLIC_KEY,
+                                    email: session.user.email,
+                                    amount: amountInKobo,
+                                    currency: appSettings.premium.currency,
+                                    ref: reference,
+                                    onClose: () => {
+                                      toast.error("Payment cancelled");
+                                      setIsPayingPremium(false);
+                                    },
+                                    callback: async (response: { reference: string }) => {
+                                      // Update profile to premium
+                                      const { error } = await supabase
+                                        .from("profiles")
+                                        .update({ is_premium: true })
+                                        .eq("id", session.user.id);
+                                      
+                                      if (error) {
+                                        toast.error("Payment received but failed to activate premium. Contact support with ref: " + response.reference);
+                                      } else {
+                                        toast.success("Welcome to Premium! Your wishlists can now be featured.");
+                                        queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+                                      }
+                                      setIsPayingPremium(false);
+                                    },
+                                  });
+                                  handler.openIframe();
+                                } catch (err) {
+                                  toast.error("Failed to initialize payment");
+                                  setIsPayingPremium(false);
+                                }
+                              }}
                             >
-                              {isUpgradingPremium ? (
+                              {isPayingPremium ? (
                                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                               ) : (
                                 <Crown className="w-4 h-4 mr-1" />
                               )}
-                              {isUpgradingPremium ? "Processing..." : "Upgrade Now"}
+                              {isPayingPremium ? "Processing..." : "Upgrade Now"}
                             </Button>
                           </div>
                           <Crown className="w-10 h-10 text-purple-400" />
@@ -480,18 +457,6 @@ const Dashboard = () => {
                   <Card
                     key={wishlist.id}
                     className="cursor-pointer hover:shadow-md transition-all duration-300 border border-border/50 shadow-sm bg-white/90 backdrop-blur-sm group overflow-hidden"
-                    onMouseEnter={() => {
-                      // Prefetch wishlist data on hover for instant loading
-                      queryClient.prefetchQuery({
-                        queryKey: ["wishlist", wishlist.id],
-                        queryFn: async () => {
-                          const { data, error } = await supabase.from("wishlists").select("id, title, description, event_type, cover_image, share_code, currency, user_id, profiles(full_name)").eq("id", wishlist.id).single();
-                          if (error) throw error;
-                          return data;
-                        },
-                        staleTime: 5 * 60 * 1000,
-                      });
-                    }}
                   >
                     {wishlist.cover_image && (
                       <div className="h-48 w-full overflow-hidden relative" onClick={() => navigate(`/wishlist/${wishlist.id}`)}>
@@ -503,14 +468,11 @@ const Dashboard = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                         <div className="absolute top-3 right-3 flex gap-2">
                     <div onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-8 w-8 bg-white/90 backdrop-blur-sm hover:bg-white"
-                        onClick={() => navigate(`/share-wishlist/${wishlist.share_code}`)}
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </Button>
+                      <ShareButtons
+                        shareUrl={`${window.location.origin}/share/${wishlist.share_code}`}
+                        title={wishlist.title}
+                        description={wishlist.description || ""}
+                      />
                     </div>
                           <Tooltip>
                             <TooltipTrigger asChild>

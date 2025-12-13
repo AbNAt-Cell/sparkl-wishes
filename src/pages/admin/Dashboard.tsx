@@ -27,7 +27,6 @@ const AdminDashboard: React.FC = () => {
         supabase.from("wishlists").select("id", { count: "exact", head: true }),
         supabase.from("wishlist_items").select("id", { count: "exact", head: true }),
         supabase.from("claims").select("id", { count: "exact", head: true }),
-        supabase.from("user_wallets").select("balance").eq("user_id", "00000000-0000-0000-0000-000000000000").single(),
       ]);
 
       return {
@@ -35,11 +34,17 @@ const AdminDashboard: React.FC = () => {
         wishlists: queries[1].count ?? 0,
         items: queries[2].count ?? 0,
         claims: queries[3].count ?? 0,
-        adminWallet: queries[4].data?.balance ?? 0,
       };
     },
   });
 
+  if (isLoading) {
+    return (
+      <div className="min-h-[30vh] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -47,18 +52,6 @@ const AdminDashboard: React.FC = () => {
       <Metric title="Wishlists" value={data?.wishlists ?? 0} href="/admin/wishlists" />
       <Metric title="Items" value={data?.items ?? 0} href="/admin/items" />
       <Metric title="Claims" value={data?.claims ?? 0} href="/admin/claims" />
-      <div className="lg:col-span-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold mb-1">Admin Wallet</h3>
-            <p className="text-purple-100">Platform fees collected</p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold">${(data?.adminWallet ?? 0).toFixed(2)}</div>
-            <p className="text-purple-100 text-sm">Total earnings</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

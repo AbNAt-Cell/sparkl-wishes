@@ -43,7 +43,7 @@ const Navbar = ({ user }: NavbarProps) => {
     <nav className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50">
       <div className="container mx-auto safe-container h-16 flex items-center justify-between">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate(user ? "/dashboard" : "/")}
           className="flex items-center gap-2 font-semibold text-lg hover:opacity-80 transition-opacity"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-hero flex items-center justify-center shadow-glow">
@@ -75,7 +75,7 @@ const Navbar = ({ user }: NavbarProps) => {
             How It Works
           </Button>
           
-          {user && (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -98,6 +98,10 @@ const Navbar = ({ user }: NavbarProps) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          ) : (
+            <Button onClick={() => navigate("/auth")} className="shadow-elegant">
+              Sign Up
+            </Button>
           )}
         </div>
       </div>

@@ -250,7 +250,11 @@ export const GuestBook: React.FC<GuestBookProps> = ({ wishlistId, wishlistOwnerI
 
         {/* Comments List */}
         <div className="space-y-3">
-          {comments && comments.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : comments && comments.length > 0 ? (
             <ScrollArea className="h-[400px] pr-4">
               <div className="space-y-3">
                 {comments.map((comment) => (

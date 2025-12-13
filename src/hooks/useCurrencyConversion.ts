@@ -46,33 +46,39 @@ export const useCurrencyConversion = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Fetch fresh exchange rates from an API (only once per session)
+  // Fetch fresh exchange rates from an API
   useEffect(() => {
     const fetchRates = async () => {
       try {
         setIsLoading(true);
-
+        console.log("Fetching fresh exchange rates...");
+        
         // Try to fetch from exchangerate-api.com (free tier available)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
+          console.log("Exchange rate fetch timed out");
           controller.abort();
         }, 5000);
-
+        
         const response = await fetch("https://api.exchangerate-api.com/v4/latest/USD", {
           signal: controller.signal,
         });
-
+        
         clearTimeout(timeoutId);
-
+        
         if (response.ok) {
           const data = await response.json();
           if (data.rates) {
+            console.log("Fresh exchange rates fetched successfully:", Object.keys(data.rates).length, "currencies");
             setRates(data.rates);
             setLastUpdated(new Date());
           }
+        } else {
+          console.warn("Exchange rate API returned non-ok status:", response.status);
         }
       } catch (error) {
-        // Silently use fallback rates
+        console.warn("Could not fetch fresh exchange rates, using fallback:", error);
+        // Make sure fallback rates are set
         setRates(exchangeRates);
       } finally {
         setIsLoading(false);
@@ -87,14 +93,22 @@ export const useCurrencyConversion = () => {
    */
   const convert = (amount: number, fromCurrency: string, toCurrency: string): number => {
     try {
+      console.log(`Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
+
       if (fromCurrency === toCurrency) {
+        console.log(`Same currency, returning ${amount}`);
         return amount;
       }
 
       const fromRate = rates[fromCurrency];
       const toRate = rates[toCurrency];
 
+      console.log(`Rates - From: ${fromCurrency}=${fromRate}, To: ${toCurrency}=${toRate}`);
+
       if (!fromRate || !toRate) {
+        console.warn(
+          `Exchange rate not found for ${fromCurrency} or ${toCurrency}, returning original amount`
+        );
         return amount;
       }
 
@@ -102,8 +116,10 @@ export const useCurrencyConversion = () => {
       const amountInUSD = amount / fromRate;
       const convertedAmount = amountInUSD * toRate;
 
+      console.log(`Converted amount: ${convertedAmount}`);
       return Math.round(convertedAmount * 100) / 100; // Round to 2 decimal places
     } catch (err) {
+      console.error("Error during currency conversion:", err);
       return amount;
     }
   };

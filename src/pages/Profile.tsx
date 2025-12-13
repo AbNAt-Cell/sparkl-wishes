@@ -130,20 +130,6 @@ const Profile = () => {
     .toUpperCase()
     .slice(0, 2);
 
-  // Don't render anything until we know the session state
-  if (session === null) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
-          <div className="text-center">
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
       <Navbar user={session.user} />
@@ -166,6 +152,11 @@ const Profile = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex flex-col items-center gap-4 pb-6 border-b border-border">
                   <Avatar className="w-24 h-24 shadow-glow">
@@ -253,6 +244,7 @@ const Profile = () => {
                   </Button>
                 </div>
               </form>
+            )}
           </CardContent>
         </Card>
       </main>

@@ -10,14 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 
 const CreateWishlist = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -27,51 +28,6 @@ const CreateWishlist = () => {
     is_public: true,
     currency: "USD",
   });
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image must be less than 5MB");
-        return;
-      }
-      setCoverImage(file);
-      setCoverPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const removeCoverImage = () => {
-    setCoverImage(null);
-    if (coverPreview) {
-      URL.revokeObjectURL(coverPreview);
-      setCoverPreview(null);
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const uploadCoverImage = async (wishlistId: string): Promise<string | null> => {
-    if (!coverImage) return null;
-    
-    const fileExt = coverImage.name.split('.').pop();
-    const filePath = `covers/${wishlistId}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('wishlist-items')
-      .upload(filePath, coverImage, { upsert: true });
-    
-    if (uploadError) {
-      console.error("Failed to upload cover image:", uploadError);
-      return null;
-    }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('wishlist-items')
-      .getPublicUrl(filePath);
-    
-    return publicUrl;
-  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -119,6 +75,55 @@ const CreateWishlist = () => {
     return true;
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be less than 5MB");
+        return;
+      }
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setCoverImage(null);
+    setCoverImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadCoverImage = async (wishlistId: string): Promise<string | null> => {
+    if (!coverImage) return null;
+    
+    setIsUploadingImage(true);
+    const fileExt = coverImage.name.split('.').pop();
+    const fileName = `covers/${wishlistId}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('wishlist-items')
+      .upload(fileName, coverImage, { upsert: true });
+    
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      setIsUploadingImage(false);
+      return null;
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('wishlist-items')
+      .getPublicUrl(fileName);
+    
+    setIsUploadingImage(false);
+    return publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user?.id) return;
@@ -133,6 +138,7 @@ const CreateWishlist = () => {
       return;
     }
 
+    // Create wishlist first
     const { data, error } = await supabase
       .from("wishlists")
       .insert({
@@ -148,7 +154,7 @@ const CreateWishlist = () => {
       return;
     }
 
-    // Upload cover image if selected
+    // Upload cover image if provided
     if (coverImage && data) {
       const coverUrl = await uploadCoverImage(data.id);
       if (coverUrl) {
@@ -271,13 +277,13 @@ const CreateWishlist = () => {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={handleImageSelect}
+                  onChange={handleImageChange}
                   className="hidden"
                 />
-                {coverPreview ? (
+                {coverImagePreview ? (
                   <div className="relative rounded-lg overflow-hidden border border-border">
                     <img
-                      src={coverPreview}
+                      src={coverImagePreview}
                       alt="Cover preview"
                       className="w-full h-48 object-cover"
                     />
@@ -286,21 +292,24 @@ const CreateWishlist = () => {
                       variant="destructive"
                       size="icon"
                       className="absolute top-2 right-2"
-                      onClick={removeCoverImage}
+                      onClick={removeImage}
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-32 border-dashed flex flex-col gap-2"
+                  <div
                     onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   >
-                    <Upload className="w-6 h-6 text-muted-foreground" />
-                    <span className="text-muted-foreground text-sm">Click to upload cover image</span>
-                  </Button>
+                    <ImageIcon className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to upload a cover image
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PNG, JPG up to 5MB
+                    </p>
+                  </div>
                 )}
               </div>
 

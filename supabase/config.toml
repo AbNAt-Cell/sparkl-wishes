@@ -11,6 +11,3 @@ verify_jwt = false
 
 [functions.notifications]
 verify_jwt = false
-
-[functions.premium-subscription]
-verify_jwt = false

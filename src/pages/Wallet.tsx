@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -100,10 +100,20 @@ const Wallet = () => {
   
   // Always convert, even if wallet is null (use 0)
   const walletBalance = wallet?.balance || 0;
-  const convertedBalance = useMemo(() =>
-    convertCurrency(walletBalance, walletCurrency, displayCurrency),
-    [convertCurrency, walletBalance, walletCurrency, displayCurrency]
-  );
+  const convertedBalance = convertCurrency(walletBalance, walletCurrency, displayCurrency);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("Wallet conversion state:", {
+      walletExists: !!wallet,
+      walletBalance,
+      walletCurrency,
+      displayCurrency,
+      convertedBalance,
+      detectedCurrency,
+      isAutoDetected,
+    });
+  }, [wallet, walletBalance, walletCurrency, displayCurrency, convertedBalance, detectedCurrency, isAutoDetected]);
 
   const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ["wallet-transactions", wallet?.id],
@@ -184,6 +194,16 @@ const Wallet = () => {
     }
   };
 
+  if (walletLoading || !session) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -191,20 +211,6 @@ const Wallet = () => {
     completed: "bg-green-100 text-green-800",
     rejected: "bg-red-100 text-red-800",
   };
-
-  // Don't render anything until we know the session state
-  if (session === null) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
-          <div className="text-center">
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <TooltipProvider>
@@ -237,9 +243,9 @@ const Wallet = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">
+                  <p className="text-4xl font-bold text-primary">
                     {convertedBalance > 0 ? formatCurrency(convertedBalance, displayCurrency, false) : formatCurrency(0, displayCurrency, false)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -254,8 +260,7 @@ const Wallet = () => {
                 <Button
                   onClick={() => setWithdrawDialogOpen(true)}
                   disabled={!wallet || wallet.balance <= 0}
-                  className="gap-2 w-full sm:w-auto"
-                  size="lg"
+                  className="gap-2"
                 >
                   <ArrowDownToLine className="w-4 h-4" />
                   Request Withdrawal
@@ -313,7 +318,11 @@ const Wallet = () => {
             <CardDescription>Your wallet activity</CardDescription>
           </CardHeader>
           <CardContent>
-            {transactions && transactions.length > 0 ? (
+            {transactionsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : transactions && transactions.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>

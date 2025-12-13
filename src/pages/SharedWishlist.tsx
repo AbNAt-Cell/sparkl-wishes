@@ -5,7 +5,7 @@ import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Loader2, Gift, ExternalLink, Info, Heart, CheckCircle2, Sparkles, Plus, Share2 } from "lucide-react";
+import { Calendar, Loader2, Gift, ExternalLink, Info, Heart, CheckCircle2, Plus, Share2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrencySymbol, isItemClaimed, getCompletedClaim, formatCurrency, formatDate } from "@/lib/utils";
 import { GuestBook } from "@/components/GuestBook";
@@ -75,20 +75,14 @@ const SharedWishlist = () => {
   };
 
 
-  if (!wishlist) {
+  // Show loading state while wishlist is being fetched
+  if (wishlistLoading || !wishlist) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center py-12">
-          <CardContent>
-            <h2 className="text-2xl font-semibold mb-2">Wishlist Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              This wishlist doesn't exist or is not public
-            </p>
-            <Button onClick={() => navigate("/")}>
-              Go to Homepage
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading wishlist...</p>
+        </div>
       </div>
     );
   }
@@ -113,10 +107,12 @@ const SharedWishlist = () => {
         <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-full bg-gradient-hero flex items-center justify-center shadow-glow">
+                <Gift className="w-4 h-4 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Sparkl Wishes</h1>
+              <span className="bg-gradient-hero bg-clip-text text-transparent">
+                Sparkl Wishes
+              </span>
             </div>
           </div>
         </header>

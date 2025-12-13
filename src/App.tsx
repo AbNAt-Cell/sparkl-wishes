@@ -71,43 +71,43 @@ const GlobalPageLoader = () => {
 const AppContent = () => (
   <>
     <GlobalPageLoader />
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/create-wishlist" element={<CreateWishlist />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/wallet" element={<Wallet />} />
-      <Route path="/how-it-works" element={<HowItWorks />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/wishlist/:id" element={<WishlistDetail />} />
-      <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
-      <Route path="/wishlist/:id/item/:itemId/edit" element={<EditWishlistItem />} />
-      <Route path="/share/:shareCode" element={<SharedWishlist />} />
-      <Route path="/claim/:itemId" element={<ClaimWishlistItem />} />
-      <Route path="/claim/:itemId/:shareCode" element={<ClaimWishlistItem />} />
-      <Route path="/share-wishlist/:shareCode" element={<ShareWishlist />} />
-      <Route path="/featured" element={<FeaturedWishlists />} />
-      <Route
-        path="/admin"
-        element={
-          <AdminGuard>
-            <AdminLayout />
-          </AdminGuard>
-        }
-      >
-        <Route index element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="wishlists" element={<AdminWishlists />} />
-        <Route path="items" element={<AdminItems />} />
-        <Route path="claims" element={<AdminClaims />} />
-        <Route path="withdrawals" element={<AdminWithdrawals />} />
-        <Route path="settings" element={<AdminSettings />} />
-      </Route>
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/create-wishlist" element={<CreateWishlist />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/wallet" element={<Wallet />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/wishlist/:id" element={<WishlistDetail />} />
+          <Route path="/wishlist/:id/item/new" element={<CreateWishlistItem />} />
+          <Route path="/wishlist/:id/item/:itemId/edit" element={<EditWishlistItem />} />
+          <Route path="/share/:shareCode" element={<SharedWishlist />} />
+          <Route path="/claim/:itemId" element={<ClaimWishlistItem />} />
+          <Route path="/claim/:itemId/:shareCode" element={<ClaimWishlistItem />} />
+          <Route path="/share-wishlist/:shareCode" element={<ShareWishlist />} />
+          <Route path="/featured" element={<FeaturedWishlists />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminGuard>
+                <AdminLayout />
+              </AdminGuard>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="wishlists" element={<AdminWishlists />} />
+            <Route path="items" element={<AdminItems />} />
+            <Route path="claims" element={<AdminClaims />} />
+            <Route path="withdrawals" element={<AdminWithdrawals />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
   </>
 );
 
@@ -136,9 +136,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AppContent />
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
   </ErrorBoundary>
 );
 

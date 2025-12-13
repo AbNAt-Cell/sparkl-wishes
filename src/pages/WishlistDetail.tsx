@@ -51,9 +51,9 @@ const WishlistDetail = () => {
       // Fetch items and claims in parallel for better performance
       const [itemsResult, claimsResult] = await Promise.all([
         supabase
-          .from("wishlist_items")
+        .from("wishlist_items")
           .select("id, name, description, price_min, price_max, external_link, image_url, allow_group_gifting, created_at")
-          .eq("wishlist_id", id!)
+        .eq("wishlist_id", id!)
           .order("created_at", { ascending: false }),
         supabase
           .from("claims")
@@ -168,14 +168,14 @@ const WishlistDetail = () => {
               </div>
               <div className="flex gap-3">
                 {wishlist?.share_code && (
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-9 w-9 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110"
-                    onClick={() => navigate(`/share-wishlist/${wishlist.share_code}`)}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
+                <Button 
+                  variant="secondary" 
+                  size="icon"
+                  className="h-9 w-9 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110"
+                  onClick={() => navigate(`/share-wishlist/${wishlist.share_code}`)}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
                 )}
                 {isOwner && (
                   <Button size="lg" onClick={() => navigate(`/wishlist/${id}/item/new`)}>

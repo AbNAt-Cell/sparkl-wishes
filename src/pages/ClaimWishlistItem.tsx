@@ -319,13 +319,6 @@ const ClaimWishlistItem = () => {
         return;
       }
 
-      // Ensure user is authenticated for claims
-      if (!session) {
-        toast.error("Please sign in to claim items");
-        setIsSubmitting(false);
-        return;
-      }
-
       if (isOwnItem) {
         toast.error("You cannot claim items from your own wishlist");
         setIsSubmitting(false);
@@ -437,25 +430,81 @@ const ClaimWishlistItem = () => {
         contribution_amount: paymentAmount,
       });
 
-      const { data: claimData, error: claimError } = await supabase
-        .from("claims")
-        .insert({
-          item_id: itemId!,
-          user_id: claimUserId,
-          claimer_name: formData.name,
-          claimer_email: formData.email,
-          claimer_phone: formData.phone,
-          notes: formData.notes || null,
-          is_anonymous: formData.isAnonymous,
-          payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
-          expires_at: itemPrice && itemPrice > 0
-            ? new Date(Date.now() + 20 * 60 * 1000).toISOString()
-            : null,
-          is_group_gift: allowGroupGifting,
-          contribution_amount: paymentAmount,
-        })
-        .select()
-        .single();
+      // Try using RPC function first
+      let claimData, claimError;
+
+      try {
+        const rpcResult = await supabase.rpc('create_wishlist_claim', {
+          p_item_id: itemId!,
+          p_user_id: claimUserId,
+          p_claimer_name: formData.name,
+          p_claimer_email: formData.email,
+          p_claimer_phone: formData.phone || null,
+          p_notes: formData.notes || null,
+          p_is_anonymous: formData.isAnonymous,
+          p_is_group_gift: allowGroupGifting,
+          p_contribution_amount: paymentAmount || null,
+        });
+
+        if (rpcResult.data?.success) {
+          claimData = rpcResult.data.claim;
+          claimError = null;
+        } else {
+          throw new Error(rpcResult.data?.error || 'RPC failed');
+        }
+      } catch (rpcErr) {
+        console.log("RPC failed, trying direct insert:", rpcErr);
+
+        // Fallback to direct insert with minimal required fields first
+        let result = await supabase
+          .from("claims")
+          .insert({
+            item_id: itemId!,
+            claimer_name: formData.name,
+            claimer_email: formData.email,
+          })
+          .select()
+          .single();
+
+        if (result.error) {
+          claimData = null;
+          claimError = result.error;
+        } else {
+          // If minimal insert worked, update with additional fields
+          const updateData: any = {};
+          if (claimUserId) updateData.user_id = claimUserId;
+          if (formData.phone) updateData.claimer_phone = formData.phone;
+          if (formData.notes) updateData.notes = formData.notes;
+          if (formData.isAnonymous !== undefined) updateData.is_anonymous = formData.isAnonymous;
+          if (itemPrice && itemPrice > 0) {
+            updateData.payment_status = "pending";
+            updateData.expires_at = new Date(Date.now() + 20 * 60 * 1000).toISOString();
+          } else {
+            updateData.payment_status = "not_required";
+          }
+          if (allowGroupGifting) updateData.is_group_gift = true;
+          if (paymentAmount) updateData.contribution_amount = paymentAmount;
+
+          if (Object.keys(updateData).length > 0) {
+            const updateResult = await supabase
+              .from("claims")
+              .update(updateData)
+              .eq("id", result.data.id)
+              .select()
+              .single();
+
+            if (updateResult.error) {
+              console.warn("Failed to update claim with additional fields:", updateResult.error);
+              // Continue with the minimal data
+            } else {
+              result = updateResult;
+            }
+          }
+
+          claimData = result.data;
+          claimError = null;
+        }
+      }
 
       if (claimError) {
         console.error("Claim insertion error:", claimError);

@@ -216,6 +216,11 @@ const ClaimWishlistItem = () => {
 
   const paymentDisplayAmount = getPaymentDisplayAmount();
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
+  // Check if Paystack is properly configured
+  if (!PAYSTACK_PUBLIC_KEY && itemPrice && itemPrice > 0) {
+    console.warn("Paystack public key not configured. Payments may not work.");
+  }
   const isOwnItem = currentUserId && wishlistOwnerId && currentUserId === wishlistOwnerId;
 
   const handlePaystackPayment = async (claimId: string) => {
@@ -482,6 +487,17 @@ const ClaimWishlistItem = () => {
     }
   };
 
+  // Show loading state while item data is being fetched
+  if (itemLoading || !item) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading item...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>

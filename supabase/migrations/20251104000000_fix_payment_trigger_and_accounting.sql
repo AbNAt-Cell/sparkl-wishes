@@ -16,6 +16,7 @@ DECLARE
   wishlist_owner_id uuid;
   wishlist_currency text;
   owner_wallet_id uuid;
+  admin_wallet_id uuid;
   contribution_amount numeric;
   settings jsonb;
   fee_percent numeric := 0.0;
@@ -105,6 +106,34 @@ BEGIN
         END,
         NEW.id
       );
+
+      -- Credit platform fee to admin wallet (if fee > 0)
+      IF fee_amount > 0 THEN
+        -- Ensure admin wallet exists (platform admin user id is a fixed UUID)
+        INSERT INTO public.user_wallets (user_id, balance, currency)
+        VALUES ('00000000-0000-0000-0000-000000000000', 0, 'USD')
+        ON CONFLICT (user_id) DO NOTHING;
+
+        -- Get admin wallet ID
+        SELECT id INTO admin_wallet_id
+        FROM public.user_wallets
+        WHERE user_id = '00000000-0000-0000-0000-000000000000';
+
+        -- Credit admin wallet with the fee amount
+        UPDATE public.user_wallets
+        SET balance = balance + fee_amount,
+            updated_at = now()
+        WHERE id = admin_wallet_id;
+
+        -- Record platform fee transaction
+        INSERT INTO public.wallet_transactions (
+          wallet_id, amount, type, status, reference, description, claim_id
+        ) VALUES (
+          admin_wallet_id, fee_amount, 'credit', 'completed', NEW.payment_reference,
+          'Platform fee for ' || (SELECT name FROM wishlist_items WHERE id = NEW.item_id),
+          NEW.id
+        );
+      END IF;
     END IF;
   END IF;
   

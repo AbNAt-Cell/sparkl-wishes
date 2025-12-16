@@ -497,33 +497,98 @@ export const ClaimItemDialog = ({
       }
 
       // Use RPC function to bypass RLS and allow guest claims
-      const { data: rpcResponse, error: rpcError } = await supabase
-        .rpc('create_wishlist_claim', {
-          p_item_id: itemId,
-          p_user_id: claimUserId,
-          p_claimer_name: formData.name,
-          p_claimer_email: formData.email,
-          p_claimer_phone: formData.phone || null,
-          p_notes: formData.notes || null,
-          p_is_anonymous: formData.isAnonymous,
-          p_is_group_gift: allowGroupGifting,
-          p_contribution_amount: paymentAmount,
-        });
-
-      if (rpcError) {
-        console.error("❌ RPC error creating claim:", rpcError);
-        throw rpcError;
-      }
-
-      const rpcResult = rpcResponse as { success: boolean; claim?: any; error?: string } | null;
+      console.log("🔄 Calling RPC function create_wishlist_claim...");
+      let claimData;
       
-      if (!rpcResult?.success || !rpcResult?.claim) {
-        console.error("❌ RPC returned unsuccessful response:", rpcResult);
-        throw new Error(rpcResult?.error || "Failed to create claim");
+      try {
+        const { data: rpcResponse, error: rpcError } = await supabase
+          .rpc('create_wishlist_claim', {
+            p_item_id: itemId,
+            p_user_id: claimUserId,
+            p_claimer_name: formData.name,
+            p_claimer_email: formData.email,
+            p_claimer_phone: formData.phone || null,
+            p_notes: formData.notes || null,
+            p_is_anonymous: formData.isAnonymous,
+            p_is_group_gift: allowGroupGifting,
+            p_contribution_amount: paymentAmount,
+          });
+
+        if (rpcError) {
+          console.warn("⚠️ RPC call failed, attempting direct insert:", rpcError);
+          
+          // Fallback to direct insert for backward compatibility
+          const { data: directData, error: directError } = await supabase
+            .from("claims")
+            .insert({
+              item_id: itemId,
+              user_id: claimUserId,
+              claimer_name: formData.name,
+              claimer_email: formData.email,
+              claimer_phone: formData.phone || null,
+              notes: formData.notes || null,
+              is_anonymous: formData.isAnonymous,
+              payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
+              expires_at: itemPrice && itemPrice > 0 
+                ? new Date(Date.now() + 20 * 60 * 1000).toISOString() 
+                : null,
+              is_group_gift: allowGroupGifting,
+              contribution_amount: paymentAmount,
+            })
+            .select()
+            .single();
+
+          if (directError) {
+            console.error("❌ Both RPC and direct insert failed:", directError);
+            throw directError;
+          }
+          
+          claimData = directData;
+          console.log("✅ Claim created via direct insert:", claimData.id);
+        } else {
+          const rpcResult = rpcResponse as { success: boolean; claim?: any; error?: string } | null;
+          
+          if (!rpcResult?.success || !rpcResult?.claim) {
+            console.warn("⚠️ RPC returned unsuccessful response, trying direct insert:", rpcResult);
+            
+            // Fallback to direct insert
+            const { data: directData, error: directError } = await supabase
+              .from("claims")
+              .insert({
+                item_id: itemId,
+                user_id: claimUserId,
+                claimer_name: formData.name,
+                claimer_email: formData.email,
+                claimer_phone: formData.phone || null,
+                notes: formData.notes || null,
+                is_anonymous: formData.isAnonymous,
+                payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
+                expires_at: itemPrice && itemPrice > 0 
+                  ? new Date(Date.now() + 20 * 60 * 1000).toISOString() 
+                  : null,
+                is_group_gift: allowGroupGifting,
+                contribution_amount: paymentAmount,
+              })
+              .select()
+              .single();
+
+            if (directError) {
+              console.error("❌ Both RPC and direct insert failed:", directError);
+              throw directError;
+            }
+            
+            claimData = directData;
+            console.log("✅ Claim created via direct insert:", claimData.id);
+          } else {
+            claimData = rpcResult.claim;
+            console.log("✅ Claim created successfully via RPC:", claimData.id);
+          }
+        }
+      } catch (rpcFallbackError) {
+        console.error("❌ Failed to create claim (RPC with fallback):", rpcFallbackError);
+        throw rpcFallbackError;
       }
 
-      const claimData = rpcResult.claim;
-      console.log("✅ Claim created successfully via RPC:", claimData.id);
       setClaimId(claimData.id);
       toast.success("Item claimed successfully!");
 

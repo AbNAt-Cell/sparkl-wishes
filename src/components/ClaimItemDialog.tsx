@@ -539,6 +539,8 @@ export const ClaimItemDialog = ({
       const paymentEnabled = appSettings?.payments?.paystackEnabled ?? true;
       console.log("💳 Payment settings:", { itemPrice, paymentEnabled, appSettings: appSettings?.payments });
 
+      setIsSubmitting(false);
+
       if (itemPrice && itemPrice > 0 && paymentEnabled) {
         console.log("✅ Showing payment button");
         setShowPaymentButton(true);
@@ -552,8 +554,6 @@ export const ClaimItemDialog = ({
       console.error("❌ Claim submission error:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to claim item";
       toast.error(errorMessage);
-    } finally {
-      console.log("🏁 Claim submission finished");
       setIsSubmitting(false);
     }
   };

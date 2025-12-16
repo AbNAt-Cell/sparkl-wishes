@@ -15,6 +15,7 @@ const AdminSettings: React.FC = () => {
   
   // Payment settings
   const [paystackEnabled, setPaystackEnabled] = useState(true);
+  const [stripeEnabled, setStripeEnabled] = useState(false);
   const [allowedMethods, setAllowedMethods] = useState<string[]>([]);
   const [platformFeePercent, setPlatformFeePercent] = useState("0.05");
   const [platformFeeMin, setPlatformFeeMin] = useState("0");
@@ -28,6 +29,7 @@ const AdminSettings: React.FC = () => {
   useEffect(() => {
     if (!data) return;
     setPaystackEnabled(data.payments.paystackEnabled);
+    setStripeEnabled(Boolean(data.payments.stripeEnabled));
     setAllowedMethods(data.payments.allowedMethods);
     setPlatformFeePercent(String(data.payments.platformFeePercent));
     setPlatformFeeMin(String(data.payments.platformFeeMin));
@@ -46,6 +48,7 @@ const AdminSettings: React.FC = () => {
   const savePayments = async () => {
     const payload = {
       paystackEnabled,
+      stripeEnabled,
       allowedMethods,
       platformFeePercent: parseFloat(platformFeePercent || "0"),
       platformFeeMin: parseFloat(platformFeeMin || "0"),
@@ -142,6 +145,14 @@ const AdminSettings: React.FC = () => {
             <div className="flex items-center gap-2">
               <Checkbox id="paystackEnabled" checked={paystackEnabled} onCheckedChange={(v) => setPaystackEnabled(Boolean(v))} />
               <Label htmlFor="paystackEnabled">Paystack enabled</Label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Enable Stripe</Label>
+            <div className="flex items-center gap-2">
+              <Checkbox id="stripeEnabled" checked={stripeEnabled} onCheckedChange={(v) => setStripeEnabled(Boolean(v))} />
+              <Label htmlFor="stripeEnabled">Stripe enabled</Label>
             </div>
           </div>
 

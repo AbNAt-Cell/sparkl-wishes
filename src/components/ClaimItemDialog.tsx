@@ -133,6 +133,7 @@ export const ClaimItemDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
+  const [alreadyClaimed, setAlreadyClaimed] = useState(false);
   const { data: appSettings } = useAppSettings();
 
   // Query to get remaining amount for group gifts
@@ -226,6 +227,36 @@ export const ClaimItemDialog = ({
       initializeDialog();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, itemId, currentUserId]);
+
+  // When dialog opens for guests, try to prefill email from localStorage and check if they've already claimed
+  useEffect(() => {
+    const checkGuestClaim = async () => {
+      if (!open || !itemId || currentUserId) return;
+      try {
+        const cachedEmail = localStorage.getItem('guest_claimer_email');
+        if (cachedEmail) {
+          setFormData(prev => ({ ...prev, email: cachedEmail }));
+          const identifier = cachedEmail.toLowerCase().trim();
+          const { data: existing, error } = await supabase
+            .from('claims')
+            .select('id')
+            .eq('item_id', itemId)
+            .eq('claimer_identifier', identifier)
+            .in('payment_status', ['pending', 'completed'])
+            .limit(1);
+          if (!error && existing && existing.length > 0) {
+            setAlreadyClaimed(true);
+          } else {
+            setAlreadyClaimed(false);
+          }
+        }
+      } catch (err) {
+        console.warn('Guest claim check failed', err);
+      }
+    };
+
+    checkGuestClaim();
   }, [open, itemId, currentUserId]);
 
   const handlePaystackPayment = async (claimId: string) => {
@@ -674,6 +705,25 @@ export const ClaimItemDialog = ({
         });
       }
     }
+
+      // If guest already claimed, prevent duplicate submission
+      if (!currentUserId) {
+        const guestIdentifier = formData.email ? formData.email.toLowerCase().trim() : null;
+        if (guestIdentifier) {
+          const { data: dup, error: dupErr } = await supabase
+            .from('claims')
+            .select('id')
+            .eq('item_id', itemId)
+            .eq('claimer_identifier', guestIdentifier)
+            .in('payment_status', ['pending', 'completed'])
+            .limit(1);
+          if (!dupErr && dup && dup.length > 0) {
+            toast.error('You have already claimed this item with this email.');
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
   };
 
   useEffect(() => {

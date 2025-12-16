@@ -66,12 +66,20 @@ const AdminLayout: React.FC = () => {
             <span className="inline-flex items-center gap-2"><HandHeart className="w-4 h-4" /> Claims</span>
           </NavLink>
           <NavLink
+            to="/admin/wallet"
+            className={({ isActive }) =>
+              `px-3 py-1.5 rounded-md border ${isActive ? "bg-primary text-primary-foreground" : "bg-card"}`
+            }
+          >
+            <span className="inline-flex items-center gap-2"><Wallet className="w-4 h-4" /> Wallet</span>
+          </NavLink>
+          <NavLink
             to="/admin/withdrawals"
             className={({ isActive }) =>
               `px-3 py-1.5 rounded-md border ${isActive ? "bg-primary text-primary-foreground" : "bg-card"}`
             }
           >
-            <span className="inline-flex items-center gap-2"><Wallet className="w-4 h-4" /> Withdrawals</span>
+            <span className="inline-flex items-center gap-2"><HandHeart className="w-4 h-4" /> Withdrawals</span>
           </NavLink>
           <NavLink
             to="/admin/settings"

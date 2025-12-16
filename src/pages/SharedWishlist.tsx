@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getCurrencySymbol, isItemClaimed, getCompletedClaim, formatCurrency, formatDate } from "@/lib/utils";
 import { GuestBook } from "@/components/GuestBook";
 import { CashFunds } from "@/components/CashFunds";
+import { useAppSettings } from "@/lib/settings";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +23,7 @@ const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
+  const { data: appSettings } = useAppSettings();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -106,14 +108,17 @@ const SharedWishlist = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 overflow-x-hidden">
         <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <div className="w-8 h-8 rounded-full bg-gradient-hero flex items-center justify-center shadow-glow">
                 <Gift className="w-4 h-4 text-primary-foreground" />
               </div>
               <span className="bg-gradient-hero bg-clip-text text-transparent">
                 Sparkl Wishes
               </span>
-            </div>
+            </button>
           </div>
         </header>
 
@@ -331,8 +336,8 @@ const SharedWishlist = () => {
           )}
         </div>
 
-        {/* Cash Funds Section - Requires migration to be run first */}
-        {/* {wishlist && (
+        {/* Cash Funds Section */}
+        {wishlist && appSettings?.features?.cashFundsEnabled && (
           <div className="mt-8">
             <CashFunds
               wishlistId={wishlist.id}
@@ -340,7 +345,7 @@ const SharedWishlist = () => {
               isOwner={false}
             />
           </div>
-        )} */}
+        )}
 
         {/* Guest Book Section - Requires migration to be run first */}
         {/* {wishlist && (

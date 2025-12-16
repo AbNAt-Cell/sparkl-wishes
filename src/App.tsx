@@ -28,6 +28,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminWishlists from "./pages/admin/Wishlists";
 import AdminItems from "./pages/admin/Items";
 import AdminClaims from "./pages/admin/Claims";
+import AdminWallet from "./pages/admin/Wallet";
 import AdminWithdrawals from "./pages/admin/Withdrawals";
 import AdminSettings from "./pages/admin/Settings";
 import AdminGuard from "@/components/AdminGuard";
@@ -102,6 +103,7 @@ const AppContent = () => (
             <Route path="wishlists" element={<AdminWishlists />} />
             <Route path="items" element={<AdminItems />} />
             <Route path="claims" element={<AdminClaims />} />
+            <Route path="wallet" element={<AdminWallet />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>

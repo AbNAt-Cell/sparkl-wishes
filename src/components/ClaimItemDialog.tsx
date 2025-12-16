@@ -623,6 +623,16 @@ export const ClaimItemDialog = ({
       setClaimId(claimData.id);
       toast.success("Item claimed successfully!");
 
+      // Persist guest email so returning guests are recognized
+      if (!currentUserId && formData.email) {
+        try {
+          localStorage.setItem('guest_claimer_email', formData.email);
+          localStorage.setItem(`claimed_item_${itemId}`, 'true');
+        } catch (e) {
+          // ignore storage errors
+        }
+      }
+
       // Fire-and-forget: send claim confirmation to claimer via Brevo
       sendNotification({
         type: "claim.created",

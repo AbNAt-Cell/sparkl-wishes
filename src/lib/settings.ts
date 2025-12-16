@@ -18,6 +18,9 @@ export type PremiumSettings = {
 export type AppSettings = {
   payments: PaymentsSettings;
   premium: PremiumSettings;
+  features?: {
+    cashFundsEnabled?: boolean;
+  };
 };
 
 const defaultSettings: AppSettings = {
@@ -32,6 +35,9 @@ const defaultSettings: AppSettings = {
     enabled: true,
     price: 5000,
     currency: "NGN",
+  },
+  features: {
+    cashFundsEnabled: true,
   },
 };
 
@@ -64,15 +70,19 @@ export function useAppSettings() {
       const { data, error } = await supabase
         .from("app_settings")
         .select("key, value")
-        .in("key", ["payments", "premium"]);
+        .in("key", ["payments", "premium", "features"]);
       if (error) throw error;
       const map = new Map<string, any>((data ?? []).map((r: any) => [r.key, r.value]));
       const dbPayments = map.get("payments");
       const dbPremium = map.get("premium");
+      const dbFeatures = map.get("features");
       
       return {
         payments: normalizePaymentSettings(dbPayments),
         premium: normalizePremiumSettings(dbPremium),
+        features: {
+          cashFundsEnabled: dbFeatures?.cashFundsEnabled ?? defaultSettings.features.cashFundsEnabled,
+        },
       };
     },
     staleTime: 60_000,

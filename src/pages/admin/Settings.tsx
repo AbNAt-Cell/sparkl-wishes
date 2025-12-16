@@ -25,6 +25,8 @@ const AdminSettings: React.FC = () => {
   const [premiumEnabled, setPremiumEnabled] = useState(true);
   const [premiumPrice, setPremiumPrice] = useState("5000");
   const [premiumCurrency, setPremiumCurrency] = useState("NGN");
+  // Feature toggles
+  const [cashFundsEnabled, setCashFundsEnabled] = useState(true);
 
   useEffect(() => {
     if (!data) return;
@@ -38,6 +40,7 @@ const AdminSettings: React.FC = () => {
     setPremiumEnabled(data.premium.enabled);
     setPremiumPrice(String(data.premium.price));
     setPremiumCurrency(data.premium.currency);
+    setCashFundsEnabled(Boolean(data.features?.cashFundsEnabled));
   }, [data]);
 
 
@@ -77,6 +80,20 @@ const AdminSettings: React.FC = () => {
       toast.error("Failed to save premium settings");
     } else {
       toast.success("Premium settings saved");
+    }
+  };
+
+  const saveFeatures = async () => {
+    const payload = {
+      cashFundsEnabled,
+    };
+    const { error } = await supabase.functions.invoke("admin-actions", {
+      body: { action: "update_setting", payload: { key: "features", value: payload } },
+    });
+    if (error) {
+      toast.error("Failed to save feature settings");
+    } else {
+      toast.success("Feature settings saved");
     }
   };
 
@@ -192,6 +209,23 @@ const AdminSettings: React.FC = () => {
           </div>
 
           <Button onClick={savePayments} className="w-full sm:w-auto">Save Payment Settings</Button>
+        </CardContent>
+      </Card>
+
+      {/* Feature Toggles */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle>Features</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Checkbox id="cashFundsEnabled" checked={cashFundsEnabled} onCheckedChange={(v) => setCashFundsEnabled(Boolean(v))} />
+              <Label htmlFor="cashFundsEnabled">Enable Cash Funds</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">Toggle the Cash Funds feature (flexible contributions) site-wide.</p>
+            <Button onClick={saveFeatures} className="w-full sm:w-auto">Save Features</Button>
+          </div>
         </CardContent>
       </Card>
     </div>

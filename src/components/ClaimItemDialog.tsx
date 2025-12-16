@@ -353,7 +353,7 @@ export const ClaimItemDialog = ({
         return;
       }
 
-      console.log("✅ Form data validated:", { name: formData.name, email: formData.email });
+      console.log("✅ Form data validated:", { name: formData.name, email: formData.email, itemId, itemPrice });
 
       // Check if item is already claimed (only for single-claim items)
       if (!allowGroupGifting) {
@@ -496,33 +496,34 @@ export const ClaimItemDialog = ({
         claimUserId = user?.id ?? null;
       }
 
-      const { data: claimData, error: claimError } = await supabase
-        .from("claims")
-        .insert({
-          item_id: itemId,
-          ...(claimUserId && { user_id: claimUserId }),
-          user_id: claimUserId,
-          claimer_name: formData.name,
-          claimer_email: formData.email,
-          claimer_phone: formData.phone,
-          notes: formData.notes || null,
-          is_anonymous: formData.isAnonymous,
-          payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
-          expires_at: itemPrice && itemPrice > 0 
-            ? new Date(Date.now() + 20 * 60 * 1000).toISOString() 
-            : null,
-          is_group_gift: allowGroupGifting,
-          contribution_amount: paymentAmount,
-        })
-        .select()
-        .single();
+      // Use RPC function to bypass RLS and allow guest claims
+      const { data: rpcResponse, error: rpcError } = await supabase
+        .rpc('create_wishlist_claim', {
+          p_item_id: itemId,
+          p_user_id: claimUserId,
+          p_claimer_name: formData.name,
+          p_claimer_email: formData.email,
+          p_claimer_phone: formData.phone || null,
+          p_notes: formData.notes || null,
+          p_is_anonymous: formData.isAnonymous,
+          p_is_group_gift: allowGroupGifting,
+          p_contribution_amount: paymentAmount,
+        });
 
-      if (claimError) {
-        console.error("❌ Database error creating claim:", claimError);
-        throw claimError;
+      if (rpcError) {
+        console.error("❌ RPC error creating claim:", rpcError);
+        throw rpcError;
       }
 
-      console.log("✅ Claim created successfully:", claimData.id);
+      const rpcResult = rpcResponse as { success: boolean; claim?: any; error?: string } | null;
+      
+      if (!rpcResult?.success || !rpcResult?.claim) {
+        console.error("❌ RPC returned unsuccessful response:", rpcResult);
+        throw new Error(rpcResult?.error || "Failed to create claim");
+      }
+
+      const claimData = rpcResult.claim;
+      console.log("✅ Claim created successfully via RPC:", claimData.id);
       setClaimId(claimData.id);
       toast.success("Item claimed successfully!");
 
@@ -552,6 +553,11 @@ export const ClaimItemDialog = ({
       }
     } catch (error) {
       console.error("❌ Claim submission error:", error);
+      console.error("Error details:", {
+        type: error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : "No stack trace",
+      });
       const errorMessage = error instanceof Error ? error.message : "Failed to claim item";
       toast.error(errorMessage);
       setIsSubmitting(false);

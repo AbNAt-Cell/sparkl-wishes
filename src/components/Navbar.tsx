@@ -4,6 +4,8 @@ import { Gift, LogOut, User, Wallet, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +34,20 @@ const Navbar = ({ user }: NavbarProps) => {
     };
     checkAdmin();
   }, [user]);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user!.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -78,8 +94,13 @@ const Navbar = ({ user }: NavbarProps) => {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="rounded-full p-0 h-10 w-10">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
+                    <AvatarFallback className="bg-gradient-hero text-primary-foreground">
+                      {profile?.full_name?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

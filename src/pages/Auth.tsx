@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Gift, Sparkles } from "lucide-react";
+import { Gift, Sparkles, Upload } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [signupAvatarUploading, setSignupAvatarUploading] = useState(false);
   const [signupAvatarUrl, setSignupAvatarUrl] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   useEffect(() => {
@@ -66,16 +68,34 @@ const Auth = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setSignupAvatarUploading(true);
+    setUploadProgress(0);
     try {
       const ext = file.name.split('.').pop();
       const fileName = `temp/${Date.now()}_${Math.random().toString(36).substr(2,9)}.${ext}`;
+      
+      // Simulate progress updates (0-90% during upload)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const next = prev + Math.random() * 30;
+          return next > 90 ? 90 : next;
+        });
+      }, 200);
+      
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+      clearInterval(progressInterval);
+      setUploadProgress(90);
+      
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setSignupAvatarUrl(data.publicUrl);
+      setUploadProgress(100);
       toast.success('Avatar uploaded');
+      
+      // Reset progress after success
+      setTimeout(() => setUploadProgress(0), 1000);
     } catch (err:any) {
       toast.error('Failed to upload avatar: ' + (err.message || ''));
+      setUploadProgress(0);
     } finally {
       setSignupAvatarUploading(false);
       e.target.value = '';
@@ -241,14 +261,41 @@ const Auth = () => {
                     <div className="space-y-2">
                       <Label className="text-sm">Profile Photo (optional)</Label>
                       {signupAvatarUrl ? (
-                        <div className="flex items-center gap-3">
-                          <img src={signupAvatarUrl} alt="avatar" className="w-12 h-12 rounded-full object-cover" />
+                        <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/30">
+                          <img src={signupAvatarUrl} alt="avatar" className="w-12 h-12 rounded-full object-cover ring-2 ring-primary" />
                           <div className="flex-1">
-                            <p className="text-sm text-muted-foreground break-words">Uploaded</p>
+                            <p className="text-sm font-medium text-foreground">✓ Photo uploaded</p>
+                            <button 
+                              type="button"
+                              onClick={() => setSignupAvatarUrl('')}
+                              className="text-xs text-primary hover:underline mt-1"
+                            >
+                              Change photo
+                            </button>
                           </div>
                         </div>
                       ) : (
-                        <Input type="file" accept="image/*" onChange={handleSignupAvatarUpload} disabled={signupAvatarUploading} />
+                        <div className="space-y-2">
+                          <Input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleSignupAvatarUpload} 
+                            disabled={signupAvatarUploading}
+                            className="cursor-pointer"
+                          />
+                          {signupAvatarUploading && uploadProgress > 0 && (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Upload className="w-4 h-4" />
+                                  <span>Uploading...</span>
+                                </div>
+                                <span className="text-xs font-medium text-primary">{Math.round(uploadProgress)}%</span>
+                              </div>
+                              <Progress value={uploadProgress} className="h-2" />
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="space-y-2">

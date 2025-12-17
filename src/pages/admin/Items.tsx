@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -50,6 +51,7 @@ const AdminItems: React.FC = () => {
               <TableHead>Owner</TableHead>
               <TableHead>Price Range</TableHead>
               <TableHead>Group Gift</TableHead>
+              <TableHead>Product Link</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
           </TableHeader>
@@ -65,6 +67,32 @@ const AdminItems: React.FC = () => {
                     : "-"}
                 </TableCell>
                 <TableCell>{item.allow_group_gifting ? "Yes" : "No"}</TableCell>
+                <TableCell>
+                  {item.external_link ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <a href={item.external_link} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                        View
+                      </a>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(item.external_link);
+                            // optional feedback
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                        className="h-8 w-8"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
                 <TableCell>{format(new Date(item.created_at), "PPP")}</TableCell>
               </TableRow>
             ))}

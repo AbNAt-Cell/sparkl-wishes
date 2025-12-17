@@ -15,6 +15,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [signupAvatarUploading, setSignupAvatarUploading] = useState(false);
+  const [signupAvatarUrl, setSignupAvatarUrl] = useState("");
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   useEffect(() => {
@@ -41,7 +43,7 @@ const Auth = () => {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, avatar_url: signupAvatarUrl },
         emailRedirectTo: `${window.location.origin}/dashboard`
       }
     });
@@ -57,6 +59,26 @@ const Auth = () => {
     } else if (data.user && !data.session) {
       // Email confirmation is enabled
       toast.success("Account created! Please check your email to verify.");
+    }
+  };
+
+  const handleSignupAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSignupAvatarUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `temp/${Date.now()}_${Math.random().toString(36).substr(2,9)}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      setSignupAvatarUrl(data.publicUrl);
+      toast.success('Avatar uploaded');
+    } catch (err:any) {
+      toast.error('Failed to upload avatar: ' + (err.message || ''));
+    } finally {
+      setSignupAvatarUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -215,6 +237,19 @@ const Auth = () => {
                         onChange={(e) => setFullName(e.target.value)}
                         required
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Profile Photo (optional)</Label>
+                      {signupAvatarUrl ? (
+                        <div className="flex items-center gap-3">
+                          <img src={signupAvatarUrl} alt="avatar" className="w-12 h-12 rounded-full object-cover" />
+                          <div className="flex-1">
+                            <p className="text-sm text-muted-foreground break-words">Uploaded</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <Input type="file" accept="image/*" onChange={handleSignupAvatarUpload} disabled={signupAvatarUploading} />
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-email">Email</Label>

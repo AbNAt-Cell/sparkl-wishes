@@ -28,6 +28,7 @@ const EditWishlistItem = () => {
     price_min: "",
     price_max: "",
     external_link: "",
+    item_type: "physical",
     image_url: "",
     allow_group_gifting: false,
   });
@@ -70,6 +71,7 @@ const EditWishlistItem = () => {
         price_min: item.price_min?.toString() || "",
         price_max: item.price_max?.toString() || "",
         external_link: item.external_link || "",
+        item_type: item.item_type || "physical",
         image_url: item.image_url || "",
         allow_group_gifting: !!item.allow_group_gifting,
       });
@@ -129,6 +131,7 @@ const EditWishlistItem = () => {
         price_min: itemFormData.price_min ? parseFloat(itemFormData.price_min) : null,
         price_max: itemFormData.price_max ? parseFloat(itemFormData.price_max) : null,
         external_link: itemFormData.external_link || null,
+        item_type: itemFormData.item_type || 'physical',
         image_url: itemFormData.image_url || null,
         allow_group_gifting: itemFormData.allow_group_gifting,
       }).eq("id", itemId);
@@ -219,16 +222,35 @@ const EditWishlistItem = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-lg font-medium">Product Link</Label>
-                <Input
-                  type="url"
-                  value={itemFormData.external_link}
-                  onChange={(e) => setItemFormData({ ...itemFormData, external_link: e.target.value })}
-                  placeholder="https://amazon.com/..."
-                  className="h-14 text-lg"
-                />
+              <div className="space-y-5">
+                <Label className="text-xl font-semibold">Item Type</Label>
+                <RadioGroup
+                  value={itemFormData.item_type}
+                  onValueChange={(v) => setItemFormData({ ...itemFormData, item_type: v })}
+                >
+                  <div className="flex items-center space-x-5 border rounded-2xl p-6">
+                    <RadioGroupItem value="physical" id="type-physical-edit" />
+                    <Label htmlFor="type-physical-edit" className="cursor-pointer text-lg font-medium">Physical Gift</Label>
+                  </div>
+                  <div className="flex items-center space-x-5 border rounded-2xl p-6">
+                    <RadioGroupItem value="cash" id="type-cash-edit" />
+                    <Label htmlFor="type-cash-edit" className="cursor-pointer text-lg font-medium">Cash Equivalent</Label>
+                  </div>
+                </RadioGroup>
               </div>
+
+              {itemFormData.item_type === "physical" && (
+                <div className="space-y-2">
+                  <Label className="text-lg font-medium">Product Link</Label>
+                  <Input
+                    type="url"
+                    value={itemFormData.external_link}
+                    onChange={(e) => setItemFormData({ ...itemFormData, external_link: e.target.value })}
+                    placeholder="https://amazon.com/..."
+                    className="h-14 text-lg"
+                  />
+                </div>
+              )}
 
               <div className="space-y-4">
                 <Label className="text-lg font-medium">Image (Optional)</Label>

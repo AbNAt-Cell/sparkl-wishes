@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { getCurrencySymbol, isItemClaimed, getCompletedClaim, formatCurrency, fo
 import { GuestBook } from "@/components/GuestBook";
 import { CashFunds } from "@/components/CashFunds";
 import { useAppSettings } from "@/lib/settings";
+import { useTrackSiteVisit } from "@/hooks/useAnalytics";
 import {
   Tooltip,
   TooltipContent,
@@ -22,8 +23,12 @@ import { Progress } from "@/components/ui/progress";
 const SharedWishlist = () => {
   const { shareCode } = useParams<{ shareCode: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [session, setSession] = useState<Session | null>(null);
   const { data: appSettings } = useAppSettings();
+  
+  // Track page visit
+  useTrackSiteVisit(location.pathname);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

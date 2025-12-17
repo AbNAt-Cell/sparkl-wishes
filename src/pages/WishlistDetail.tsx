@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import Navbar from "@/components/Navbar";
@@ -11,6 +11,7 @@ import { ArrowLeft, Calendar, Share2, Plus, ExternalLink, Loader2, Gift, Edit, T
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrencySymbol, isItemClaimed } from "@/lib/utils";
+import { useTrackSiteVisit } from "@/hooks/useAnalytics";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,10 +25,14 @@ import {
 
 const WishlistDetail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<Session | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  
+  // Track page visit
+  useTrackSiteVisit(location.pathname);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));

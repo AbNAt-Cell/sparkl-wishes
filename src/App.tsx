@@ -31,8 +31,10 @@ import AdminClaims from "./pages/admin/Claims";
 import AdminWallet from "./pages/admin/Wallet";
 import AdminWithdrawals from "./pages/admin/Withdrawals";
 import AdminSettings from "./pages/admin/Settings";
+import AdminAnalytics from "./pages/admin/Analytics";
 import AdminGuard from "@/components/AdminGuard";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import { useTrackSiteVisit } from "@/hooks/useAnalytics";
 
 // Global Page Loader Component
 const GlobalPageLoader = () => {
@@ -108,6 +110,7 @@ const AppContent = () => (
             <Route path="wallet" element={<AdminWallet />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

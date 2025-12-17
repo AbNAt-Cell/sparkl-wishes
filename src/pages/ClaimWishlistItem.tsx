@@ -23,6 +23,7 @@ import { getCurrencySymbol } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { sendNotification } from "@/integrations/notifications";
 import { useAppSettings } from "@/lib/settings";
+import { convertTokenFeeToLocalCurrency } from "@/lib/utils";
 
 // Funding Progress Component for Group Gifts
 const FundingProgress = ({ itemId, targetAmount, currency }: { itemId: string; targetAmount: number; currency: string }) => {
@@ -105,6 +106,7 @@ const ClaimWishlistItem = () => {
   const [claimType, setClaimType] = useState<"full" | "partial">("full");
   const [contributionAmount, setContributionAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
+  const [deliveryType, setDeliveryType] = useState<"personal_delivery" | "cash_equivalent">("cash_equivalent");
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [claimId, setClaimId] = useState<string | null>(null);
@@ -386,7 +388,11 @@ const ClaimWishlistItem = () => {
 
       let paymentAmount = itemPrice || 0;
       
-      if (allowGroupGifting && itemPrice && itemPrice > 0) {
+      // For physical items with personal delivery, use token fee instead of full price
+      if (item?.item_type === "physical" && !allowGroupGifting && deliveryType === "personal_delivery") {
+        const tokenFeeNGN = appSettings?.tokenFees?.personalDeliveryFeeNGN || 2000;
+        paymentAmount = convertTokenFeeToLocalCurrency(tokenFeeNGN, currency);
+      } else if (allowGroupGifting && itemPrice && itemPrice > 0) {
         const { data: existingClaims } = await supabase
           .from("claims")
           .select("contribution_amount, is_group_gift")
@@ -444,6 +450,7 @@ const ClaimWishlistItem = () => {
           p_is_anonymous: formData.isAnonymous,
           p_is_group_gift: allowGroupGifting,
           p_contribution_amount: paymentAmount || null,
+          p_claim_type: deliveryType || 'cash_equivalent',
         });
 
         if (rpcResult.data?.success) {
@@ -462,6 +469,7 @@ const ClaimWishlistItem = () => {
             item_id: itemId!,
             claimer_name: formData.name,
             claimer_email: formData.email,
+            claim_type: deliveryType || 'cash_equivalent',
           })
           .select()
           .single();
@@ -691,6 +699,43 @@ const ClaimWishlistItem = () => {
                                     </div>
                                   </div>
                                 )}
+                              </div>
+                            </div>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    )}
+
+                    {item?.item_type === "physical" && !allowGroupGifting && (
+                      <div className="space-y-4 p-4 rounded-lg border bg-gradient-to-br from-blue-50/30 to-cyan-50/30">
+                        <div className="flex items-center gap-2 pb-2 border-b">
+                          <CreditCard className="w-4 h-4 text-muted-foreground" />
+                          <h3 className="font-medium text-sm">How will you get this gift?</h3>
+                        </div>
+                        
+                        <RadioGroup value={deliveryType} onValueChange={(value: "personal_delivery" | "cash_equivalent") => setDeliveryType(value)}>
+                          <div className="space-y-3">
+                            <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
+                              <RadioGroupItem value="personal_delivery" id="personal-delivery" />
+                              <div className="flex-1">
+                                <Label htmlFor="personal-delivery" className="cursor-pointer font-medium">
+                                  I'll Personally Deliver It
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Pay a token fee of {getCurrencySymbol(currency)}{(convertTokenFeeToLocalCurrency(appSettings?.tokenFees?.personalDeliveryFeeNGN || 2000, currency)).toFixed(2)} to confirm your commitment
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
+                              <RadioGroupItem value="cash_equivalent" id="cash-equivalent" />
+                              <div className="flex-1">
+                                <Label htmlFor="cash-equivalent" className="cursor-pointer font-medium">
+                                  Pay Cash Equivalent
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Send money instead: {getCurrencySymbol(currency)}{itemPrice ? itemPrice.toFixed(2) : 'TBD'} {currency}
+                                </p>
                               </div>
                             </div>
                           </div>

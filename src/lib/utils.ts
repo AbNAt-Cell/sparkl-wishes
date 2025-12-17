@@ -146,3 +146,23 @@ export function formatCompactNumber(num: number): string {
   }
   return num.toString();
 }
+// Convert NGN token fee to other currencies (approximate rates)
+export function convertTokenFeeToLocalCurrency(tokenFeeNGN: number, targetCurrency: string): number {
+  const exchangeRates: Record<string, number> = {
+    NGN: 1,
+    USD: 0.00062,  // 1 NGN ≈ 0.00062 USD
+    EUR: 0.00058,  // 1 NGN ≈ 0.00058 EUR
+    GBP: 0.00050,  // 1 NGN ≈ 0.00050 GBP
+    ZAR: 0.0108,   // 1 NGN ≈ 0.0108 ZAR
+    KES: 0.080,    // 1 NGN ≈ 0.080 KES
+    GHS: 0.0076,   // 1 NGN ≈ 0.0076 GHS
+    CAD: 0.00084,  // 1 NGN ≈ 0.00084 CAD
+    AUD: 0.00095,  // 1 NGN ≈ 0.00095 AUD
+    INR: 0.052,    // 1 NGN ≈ 0.052 INR
+    CNY: 0.0045,   // 1 NGN ≈ 0.0045 CNY
+    BRL: 0.0031,   // 1 NGN ≈ 0.0031 BRL
+  };
+
+  const rate = exchangeRates[targetCurrency] || 0.00062;
+  return tokenFeeNGN * rate;
+}

@@ -20,6 +20,10 @@ export type WhatsAppSettings = {
   whatsappLink: string;
 };
 
+export type TokenFeeSettings = {
+  personalDeliveryFeeNGN: number; // Fee in NGN
+};
+
 export type AppSettings = {
   payments: PaymentsSettings;
   premium: PremiumSettings;
@@ -27,6 +31,7 @@ export type AppSettings = {
     cashFundsEnabled?: boolean;
   };
   whatsapp?: WhatsAppSettings;
+  tokenFees?: TokenFeeSettings;
 };
 
 const defaultSettings: AppSettings = {
@@ -48,6 +53,9 @@ const defaultSettings: AppSettings = {
   whatsapp: {
     enabled: false,
     whatsappLink: "",
+  },
+  tokenFees: {
+    personalDeliveryFeeNGN: 2000,
   },
 };
 
@@ -80,6 +88,12 @@ const normalizeWhatsAppSettings = (dbValue: any): WhatsAppSettings => {
   };
 };
 
+const normalizeTokenFeeSettings = (dbValue: any): TokenFeeSettings => {
+  return {
+    personalDeliveryFeeNGN: dbValue?.personalDeliveryFeeNGN ?? defaultSettings.tokenFees?.personalDeliveryFeeNGN ?? 2000,
+  };
+};
+
 export function useAppSettings() {
   return useQuery({
     queryKey: ["app-settings"],
@@ -87,13 +101,14 @@ export function useAppSettings() {
       const { data, error } = await supabase
         .from("app_settings")
         .select("key, value")
-        .in("key", ["payments", "premium", "features", "whatsapp"]);
+        .in("key", ["payments", "premium", "features", "whatsapp", "tokenFees"]);
       if (error) throw error;
       const map = new Map<string, any>((data ?? []).map((r: any) => [r.key, r.value]));
       const dbPayments = map.get("payments");
       const dbPremium = map.get("premium");
       const dbFeatures = map.get("features");
       const dbWhatsApp = map.get("whatsapp");
+      const dbTokenFees = map.get("tokenFees");
       
       return {
         payments: normalizePaymentSettings(dbPayments),
@@ -102,6 +117,7 @@ export function useAppSettings() {
           cashFundsEnabled: dbFeatures?.cashFundsEnabled ?? defaultSettings.features.cashFundsEnabled,
         },
         whatsapp: normalizeWhatsAppSettings(dbWhatsApp),
+        tokenFees: normalizeTokenFeeSettings(dbTokenFees),
       };
     },
     staleTime: 60_000,

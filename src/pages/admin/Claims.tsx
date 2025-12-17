@@ -175,6 +175,7 @@ const AdminClaims: React.FC = () => {
                   <TableHead>Wishlist</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Claimer</TableHead>
+                  <TableHead>Delivery Type</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
@@ -190,6 +191,13 @@ const AdminClaims: React.FC = () => {
                     <TableCell>{claim.wishlist_items?.wishlists?.profiles?.full_name}</TableCell>
                     <TableCell>
                       {claim.is_anonymous ? "Anonymous" : claim.claimer_name || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {claim.claim_type === "personal_delivery" ? (
+                        <Badge className="bg-blue-500">Personal Delivery</Badge>
+                      ) : (
+                        <Badge variant="outline">Cash Equivalent</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       {claim.contribution_amount 

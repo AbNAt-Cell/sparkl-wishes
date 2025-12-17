@@ -27,6 +27,10 @@ const AdminSettings: React.FC = () => {
   const [premiumCurrency, setPremiumCurrency] = useState("NGN");
   // Feature toggles
   const [cashFundsEnabled, setCashFundsEnabled] = useState(true);
+  
+  // WhatsApp settings
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappLink, setWhatsappLink] = useState("");
 
   useEffect(() => {
     if (!data) return;
@@ -41,6 +45,9 @@ const AdminSettings: React.FC = () => {
     setPremiumPrice(String(data.premium.price));
     setPremiumCurrency(data.premium.currency);
     setCashFundsEnabled(Boolean(data.features?.cashFundsEnabled));
+    
+    setWhatsappEnabled(Boolean(data.whatsapp?.enabled));
+    setWhatsappLink(data.whatsapp?.whatsappLink || "");
   }, [data]);
 
 
@@ -94,6 +101,21 @@ const AdminSettings: React.FC = () => {
       toast.error("Failed to save feature settings");
     } else {
       toast.success("Feature settings saved");
+    }
+  };
+
+  const saveWhatsApp = async () => {
+    const payload = {
+      enabled: whatsappEnabled,
+      whatsappLink,
+    };
+    const { error } = await supabase.functions.invoke("admin-actions", {
+      body: { action: "update_setting", payload: { key: "whatsapp", value: payload } },
+    });
+    if (error) {
+      toast.error("Failed to save WhatsApp settings");
+    } else {
+      toast.success("WhatsApp settings saved");
     }
   };
 
@@ -226,6 +248,45 @@ const AdminSettings: React.FC = () => {
             <p className="text-sm text-muted-foreground">Toggle the Cash Funds feature (flexible contributions) site-wide.</p>
             <Button onClick={saveFeatures} className="w-full sm:w-auto">Save Features</Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* WhatsApp Settings */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle>WhatsApp Integration</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="whatsappEnabled" 
+                checked={whatsappEnabled} 
+                onCheckedChange={(v) => setWhatsappEnabled(Boolean(v))} 
+              />
+              <Label htmlFor="whatsappEnabled">Enable Floating WhatsApp Icon</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Enable a floating WhatsApp icon that appears on all pages
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsappLink">WhatsApp Link</Label>
+            <Input 
+              id="whatsappLink" 
+              type="text" 
+              placeholder="https://wa.me/1234567890 or https://wa.me/1234567890?text=Hello"
+              value={whatsappLink} 
+              onChange={(e) => setWhatsappLink(e.target.value)}
+              disabled={!whatsappEnabled}
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter a WhatsApp link. Example: https://wa.me/1234567890 (replace with your phone number)
+            </p>
+          </div>
+
+          <Button onClick={saveWhatsApp} className="w-full sm:w-auto">Save WhatsApp Settings</Button>
         </CardContent>
       </Card>
     </div>

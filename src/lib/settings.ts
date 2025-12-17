@@ -15,12 +15,18 @@ export type PremiumSettings = {
   currency: string;
 };
 
+export type WhatsAppSettings = {
+  enabled: boolean;
+  whatsappLink: string;
+};
+
 export type AppSettings = {
   payments: PaymentsSettings;
   premium: PremiumSettings;
   features?: {
     cashFundsEnabled?: boolean;
   };
+  whatsapp?: WhatsAppSettings;
 };
 
 const defaultSettings: AppSettings = {
@@ -38,6 +44,10 @@ const defaultSettings: AppSettings = {
   },
   features: {
     cashFundsEnabled: true,
+  },
+  whatsapp: {
+    enabled: false,
+    whatsappLink: "",
   },
 };
 
@@ -63,6 +73,13 @@ const normalizePremiumSettings = (dbValue: any): PremiumSettings => {
   };
 };
 
+const normalizeWhatsAppSettings = (dbValue: any): WhatsAppSettings => {
+  return {
+    enabled: dbValue?.enabled ?? defaultSettings.whatsapp?.enabled ?? false,
+    whatsappLink: dbValue?.whatsappLink ?? defaultSettings.whatsapp?.whatsappLink ?? "",
+  };
+};
+
 export function useAppSettings() {
   return useQuery({
     queryKey: ["app-settings"],
@@ -70,12 +87,13 @@ export function useAppSettings() {
       const { data, error } = await supabase
         .from("app_settings")
         .select("key, value")
-        .in("key", ["payments", "premium", "features"]);
+        .in("key", ["payments", "premium", "features", "whatsapp"]);
       if (error) throw error;
       const map = new Map<string, any>((data ?? []).map((r: any) => [r.key, r.value]));
       const dbPayments = map.get("payments");
       const dbPremium = map.get("premium");
       const dbFeatures = map.get("features");
+      const dbWhatsApp = map.get("whatsapp");
       
       return {
         payments: normalizePaymentSettings(dbPayments),
@@ -83,6 +101,7 @@ export function useAppSettings() {
         features: {
           cashFundsEnabled: dbFeatures?.cashFundsEnabled ?? defaultSettings.features.cashFundsEnabled,
         },
+        whatsapp: normalizeWhatsAppSettings(dbWhatsApp),
       };
     },
     staleTime: 60_000,

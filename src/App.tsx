@@ -32,6 +32,7 @@ import AdminWallet from "./pages/admin/Wallet";
 import AdminWithdrawals from "./pages/admin/Withdrawals";
 import AdminSettings from "./pages/admin/Settings";
 import AdminGuard from "@/components/AdminGuard";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 
 // Global Page Loader Component
 const GlobalPageLoader = () => {
@@ -72,7 +73,8 @@ const GlobalPageLoader = () => {
 const AppContent = () => (
   <>
     <GlobalPageLoader />
-        <Routes>
+    <FloatingWhatsApp />
+    <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />

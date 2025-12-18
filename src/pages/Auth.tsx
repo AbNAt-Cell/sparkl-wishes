@@ -18,6 +18,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [signupAvatarUploading, setSignupAvatarUploading] = useState(false);
   const [signupAvatarUrl, setSignupAvatarUrl] = useState("");
+  const [signupTempPath, setSignupTempPath] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showResetPassword, setShowResetPassword] = useState(false);
 
@@ -70,15 +71,39 @@ const Auth = () => {
       if (data.session) {
         // Auto-login: user is logged in immediately (email confirmation disabled)
         toast.success("Account created successfully!");
-        // Clear form
-        setSignupAvatarUrl('');
+
+        // If we uploaded a temporary avatar, finalize it via the Edge Function
+        if (signupTempPath) {
+          try {
+            const { data: fnData, error: fnError } = await supabase.functions.invoke("finalize-avatar-upload", {
+              body: { temp_path: signupTempPath },
+            });
+            if (fnError) throw fnError;
+            if (fnData && (fnData.public_url || fnData.publicUrl)) {
+              setSignupAvatarUrl(fnData.public_url || fnData.publicUrl);
+            }
+            setSignupTempPath(null);
+            localStorage.removeItem("pendingAvatarTempPath");
+          } catch (err: any) {
+            console.error("Finalize avatar upload failed:", err);
+            toast.error("Warning: failed to finalize avatar. You can retry from your profile.");
+          }
+        }
+
+        // Clear local UI state and navigate
+        setSignupAvatarUrl("");
         setUploadProgress(0);
         navigate("/dashboard");
       } else if (data.user && !data.session) {
         // Email confirmation is enabled
         toast.success("Account created! Please check your email to verify.");
-        // Clear form
-        setSignupAvatarUrl('');
+        if (signupTempPath) {
+          try {
+            localStorage.setItem("pendingAvatarTempPath", signupTempPath);
+          } catch (e) {
+            console.warn("Could not persist pending avatar path", e);
+          }
+        }
         setUploadProgress(0);
       }
     } catch (err: any) {
@@ -125,9 +150,10 @@ const Auth = () => {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
       clearInterval(progressInterval);
       setUploadProgress(90);
-      
+      // if upload fails, clear temp path and throw
       if (uploadError) {
         console.error("Upload error:", uploadError);
+        setSignupTempPath(null);
         throw new Error(uploadError.message || 'Failed to upload avatar');
       }
       
@@ -135,6 +161,8 @@ const Auth = () => {
       setSignupAvatarUrl(data.publicUrl);
       setUploadProgress(100);
       toast.success('Avatar uploaded successfully');
+      // remember temp path for finalize
+      setSignupTempPath(fileName);
       
       // Reset progress after success
       setTimeout(() => setUploadProgress(0), 1000);
@@ -143,9 +171,28 @@ const Auth = () => {
       const errorMsg = err?.message || 'Unknown error occurred';
       toast.error('Failed to upload avatar: ' + errorMsg);
       setUploadProgress(0);
+      setSignupTempPath(null);
     } finally {
       setSignupAvatarUploading(false);
       e.target.value = '';
+    }
+  };
+
+  // finalize any pending avatar when a user signs in
+  const finalizePendingAvatar = async () => {
+    const pending = localStorage.getItem('pendingAvatarTempPath');
+    if (!pending) return;
+    try {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('finalize-avatar-upload', {
+        body: { temp_path: pending },
+      });
+      if (fnError) throw fnError;
+      if (fnData && (fnData.public_url || fnData.publicUrl)) {
+        setSignupAvatarUrl(fnData.public_url || fnData.publicUrl);
+      }
+      localStorage.removeItem('pendingAvatarTempPath');
+    } catch (err) {
+      console.error('Failed to finalize pending avatar:', err);
     }
   };
 
@@ -163,6 +210,12 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else if (data.session) {
+      // finalize any pending avatar uploads after sign in
+      try {
+        await finalizePendingAvatar();
+      } catch (err) {
+        console.error('Pending avatar finalize error on sign in:', err);
+      }
       // Check if user is admin and redirect accordingly
       const role = data.session.user?.app_metadata?.role;
       if (role === "admin") {

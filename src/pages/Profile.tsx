@@ -19,6 +19,7 @@ const Profile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingAvatarTempPath, setPendingAvatarTempPath] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     full_name: "",
     bio: "",
@@ -67,6 +68,14 @@ const Profile = () => {
         bio: profile.bio || "",
         avatar_url: profile.avatar_url || "",
       });
+    }
+
+    // Check for any pending avatar uploaded before signup completion
+    try {
+      const pending = localStorage.getItem("pendingAvatarTempPath");
+      if (pending) setPendingAvatarTempPath(pending);
+    } catch (e) {
+      console.warn("Could not read pendingAvatarTempPath", e);
     }
   }, [profile]);
 
@@ -181,6 +190,55 @@ const Profile = () => {
                     onChange={handleAvatarUpload}
                     className="hidden"
                   />
+                  {pendingAvatarTempPath && (
+                    <div className="mt-3 w-full text-center">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        We found a photo you uploaded earlier but didn't finish finalizing.
+                      </p>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={async () => {
+                            try {
+                              const { data: fnData, error: fnError } = await supabase.functions.invoke(
+                                "finalize-avatar-upload",
+                                { body: { temp_path: pendingAvatarTempPath } }
+                              );
+                              if (fnError) throw fnError;
+                              const publicUrl = fnData?.public_url || fnData?.publicUrl;
+                              if (publicUrl) {
+                                setFormData((s) => ({ ...s, avatar_url: publicUrl }));
+                                toast.success("Avatar finalized successfully");
+                              } else {
+                                toast.error("Finalize function returned no public URL");
+                              }
+                              localStorage.removeItem("pendingAvatarTempPath");
+                              setPendingAvatarTempPath(null);
+                              // Refresh profile query
+                              queryClient.invalidateQueries({ queryKey: ["profile", session?.user?.id] });
+                            } catch (err: any) {
+                              console.error("Finalize avatar error:", err);
+                              toast.error("Failed to finalize avatar: " + (err?.message || ""));
+                            }
+                          }}
+                        >
+                          Finalize Photo
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            localStorage.removeItem("pendingAvatarTempPath");
+                            setPendingAvatarTempPath(null);
+                            toast.success("Pending photo cleared");
+                          }}
+                        >
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <Button
                     type="button"
                     variant="outline"

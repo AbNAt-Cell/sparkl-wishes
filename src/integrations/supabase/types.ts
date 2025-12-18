@@ -388,6 +388,7 @@ export type Database = {
           external_link: string | null
           id: string
           image_url: string | null
+          item_type: string
           name: string
           price_max: number | null
           price_min: number | null
@@ -403,6 +404,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           image_url?: string | null
+          item_type?: string
           name: string
           price_max?: number | null
           price_min?: number | null
@@ -418,6 +420,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           image_url?: string | null
+          item_type?: string
           name?: string
           price_max?: number | null
           price_min?: number | null

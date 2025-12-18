@@ -39,34 +39,75 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate full name is provided
+    if (!fullName.trim()) {
+      toast.error("Please enter your full name");
+      return;
+    }
+    
     setIsLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, avatar_url: signupAvatarUrl },
-        emailRedirectTo: `${window.location.origin}/dashboard`
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { 
+            full_name: fullName.trim(), 
+            avatar_url: signupAvatarUrl || null
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
       }
-    });
 
-    setIsLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-    } else if (data.session) {
-      // Auto-login: user is logged in immediately (email confirmation disabled)
-      toast.success("Account created successfully!");
-      navigate("/dashboard");
-    } else if (data.user && !data.session) {
-      // Email confirmation is enabled
-      toast.success("Account created! Please check your email to verify.");
+      if (data.session) {
+        // Auto-login: user is logged in immediately (email confirmation disabled)
+        toast.success("Account created successfully!");
+        // Clear form
+        setSignupAvatarUrl('');
+        setUploadProgress(0);
+        navigate("/dashboard");
+      } else if (data.user && !data.session) {
+        // Email confirmation is enabled
+        toast.success("Account created! Please check your email to verify.");
+        // Clear form
+        setSignupAvatarUrl('');
+        setUploadProgress(0);
+      }
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      toast.error("An unexpected error occurred during signup");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSignupAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 5MB");
+      e.target.value = '';
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select a valid image file");
+      e.target.value = '';
+      return;
+    }
+    
     setSignupAvatarUploading(true);
     setUploadProgress(0);
     try {
@@ -85,16 +126,22 @@ const Auth = () => {
       clearInterval(progressInterval);
       setUploadProgress(90);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw new Error(uploadError.message || 'Failed to upload avatar');
+      }
+      
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setSignupAvatarUrl(data.publicUrl);
       setUploadProgress(100);
-      toast.success('Avatar uploaded');
+      toast.success('Avatar uploaded successfully');
       
       // Reset progress after success
       setTimeout(() => setUploadProgress(0), 1000);
     } catch (err:any) {
-      toast.error('Failed to upload avatar: ' + (err.message || ''));
+      console.error("Avatar upload error:", err);
+      const errorMsg = err?.message || 'Unknown error occurred';
+      toast.error('Failed to upload avatar: ' + errorMsg);
       setUploadProgress(0);
     } finally {
       setSignupAvatarUploading(false);

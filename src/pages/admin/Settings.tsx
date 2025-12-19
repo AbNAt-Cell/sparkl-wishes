@@ -9,9 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AdminSettings: React.FC = () => {
   const { data, isLoading } = useAppSettings();
+  const queryClient = useQueryClient();
   
   // Payment settings
   const [paystackEnabled, setPaystackEnabled] = useState(true);
@@ -71,6 +73,8 @@ const AdminSettings: React.FC = () => {
       toast.error("Failed to save payment settings");
     } else {
       toast.success("Payment settings saved");
+      // Invalidate cache to refresh settings across app
+      await queryClient.invalidateQueries({ queryKey: ["app-settings"] });
     }
   };
 
@@ -87,6 +91,7 @@ const AdminSettings: React.FC = () => {
       toast.error("Failed to save premium settings");
     } else {
       toast.success("Premium settings saved");
+      await queryClient.invalidateQueries({ queryKey: ["app-settings"] });
     }
   };
 
@@ -101,6 +106,7 @@ const AdminSettings: React.FC = () => {
       toast.error("Failed to save feature settings");
     } else {
       toast.success("Feature settings saved");
+      await queryClient.invalidateQueries({ queryKey: ["app-settings"] });
     }
   };
 
@@ -116,6 +122,7 @@ const AdminSettings: React.FC = () => {
       toast.error("Failed to save WhatsApp settings");
     } else {
       toast.success("WhatsApp settings saved");
+      await queryClient.invalidateQueries({ queryKey: ["app-settings"] });
     }
   };
 

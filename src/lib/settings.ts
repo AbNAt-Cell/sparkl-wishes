@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PaymentsSettings = {
   paystackEnabled: boolean;
+  stripeEnabled?: boolean;
   allowedMethods: string[];
   platformFeePercent: number; // 0..1
   platformFeeMin: number;     // absolute currency unit
@@ -37,6 +38,7 @@ export type AppSettings = {
 const defaultSettings: AppSettings = {
   payments: {
     paystackEnabled: true,
+    stripeEnabled: false,
     allowedMethods: ["card", "bank_transfer", "mobile_money"],
     platformFeePercent: 0.05,
     platformFeeMin: 0,
@@ -66,6 +68,7 @@ const normalizePaymentSettings = (dbValue: any): PaymentsSettings => {
   
   return {
     paystackEnabled: enabled,
+    stripeEnabled: dbValue?.stripeEnabled ?? defaultSettings.payments.stripeEnabled,
     allowedMethods: dbValue?.allowedMethods ?? defaultSettings.payments.allowedMethods,
     platformFeePercent: dbValue?.platformFeePercent ?? defaultSettings.payments.platformFeePercent,
     platformFeeMin: dbValue?.platformFeeMin ?? defaultSettings.payments.platformFeeMin,

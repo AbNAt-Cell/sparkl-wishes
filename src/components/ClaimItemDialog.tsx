@@ -991,24 +991,31 @@ export const ClaimItemDialog = ({
                 <div className="flex items-start gap-2">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">
-                      {(appSettings?.payments.paystackEnabled ?? true) ? "Secure Payment via Paystack" : "Payments temporarily unavailable"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {(appSettings?.payments.paystackEnabled ?? true) ? "Your payment will be processed securely. We accept:" : "The wishlist owner has disabled payments at the moment."}
-                    </p>
-                    {(appSettings?.payments.paystackEnabled ?? true) && (
-                      <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                        {appSettings?.payments.allowedMethods?.includes("card") && (
-                          <span className="px-2 py-1 bg-background rounded">💳 Cards</span>
-                        )}
-                        {appSettings?.payments.allowedMethods?.includes("bank_transfer") && (
-                          <span className="px-2 py-1 bg-background rounded">🏦 Bank Transfer</span>
-                        )}
-                        {appSettings?.payments.allowedMethods?.includes("mobile_money") && (
-                          <span className="px-2 py-1 bg-background rounded">📱 Mobile Money</span>
-                        )}
-                      </div>
-                    )}
+                       {((appSettings?.payments.paystackEnabled ?? true) || (appSettings?.payments.stripeEnabled ?? false)) ? "Secure Payment Options" : "Payments temporarily unavailable"}
+                     </p>
+                     <p className="text-xs text-muted-foreground mt-1">
+                       {((appSettings?.payments.paystackEnabled ?? true) || (appSettings?.payments.stripeEnabled ?? false)) ? "Your payment will be processed securely. We accept:" : "The wishlist owner has disabled payments at the moment."}
+                     </p>
+                    {((appSettings?.payments.paystackEnabled ?? true) || (appSettings?.payments.stripeEnabled ?? false)) && (
+                       <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                         {(appSettings?.payments.paystackEnabled ?? true) && (
+                           <>
+                             {appSettings?.payments.allowedMethods?.includes("card") && (
+                               <span className="px-2 py-1 bg-background rounded">💳 Cards (Paystack)</span>
+                             )}
+                             {appSettings?.payments.allowedMethods?.includes("bank_transfer") && (
+                               <span className="px-2 py-1 bg-background rounded">🏦 Bank Transfer</span>
+                             )}
+                             {appSettings?.payments.allowedMethods?.includes("mobile_money") && (
+                               <span className="px-2 py-1 bg-background rounded">📱 Mobile Money</span>
+                             )}
+                           </>
+                         )}
+                         {appSettings?.payments.stripeEnabled && (
+                           <span className="px-2 py-1 bg-background rounded">💳 Stripe Cards</span>
+                         )}
+                       </div>
+                     )}
                   </div>
                 </div>
               </AlertDescription>

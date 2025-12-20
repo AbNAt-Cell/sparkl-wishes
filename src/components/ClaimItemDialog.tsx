@@ -1051,48 +1051,6 @@ export const ClaimItemDialog = ({
             </div>
           </div>
 
-           {/* Payment Method Selection */}
-           {itemPrice && itemPrice > 0 && !showPaymentButton && ((appSettings?.payments.paystackEnabled ?? true) || (appSettings?.payments.stripeEnabled ?? false)) && (
-             <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-blue-50/30 to-cyan-50/30">
-               <div className="flex items-center gap-2 pb-2 border-b">
-                 <CreditCard className="w-4 h-4 text-muted-foreground" />
-                 <h3 className="font-medium text-sm">Choose Payment Method</h3>
-               </div>
-               
-               <RadioGroup value={paymentMethod} onValueChange={(value: "paystack" | "stripe") => setPaymentMethod(value)}>
-                 <div className="space-y-3">
-                   {(appSettings?.payments.paystackEnabled ?? true) && (
-                     <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
-                       <RadioGroupItem value="paystack" id="paystack" />
-                       <div className="flex-1">
-                         <Label htmlFor="paystack" className="cursor-pointer font-medium">
-                           Paystack
-                         </Label>
-                         <p className="text-xs text-muted-foreground mt-1">
-                           Pay with card, bank transfer, or mobile money
-                         </p>
-                       </div>
-                     </div>
-                   )}
-                   
-                   {(appSettings?.payments.stripeEnabled ?? false) && (
-                     <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
-                       <RadioGroupItem value="stripe" id="stripe" />
-                       <div className="flex-1">
-                         <Label htmlFor="stripe" className="cursor-pointer font-medium">
-                           Stripe
-                         </Label>
-                         <p className="text-xs text-muted-foreground mt-1">
-                           Pay securely with Stripe
-                         </p>
-                       </div>
-                     </div>
-                   )}
-                 </div>
-               </RadioGroup>
-             </div>
-           )}
-           
            {/* Payment Information */}
            {itemPrice && itemPrice > 0 && !showPaymentButton && (
             <Alert className="bg-primary/5 border-primary/20">
@@ -1177,7 +1135,50 @@ export const ClaimItemDialog = ({
                     <p className="text-sm">Complete your payment to finalize the gift.</p>
                   </AlertDescription>
                 </Alert>
-                <Button 
+
+                {/* Payment Method Selection */}
+                {((appSettings?.payments.paystackEnabled ?? true) || (appSettings?.payments.stripeEnabled ?? false)) && (
+                  <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-blue-50/30 to-cyan-50/30">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <CreditCard className="w-4 h-4 text-muted-foreground" />
+                      <h3 className="font-medium text-sm">Choose Payment Method</h3>
+                    </div>
+                    
+                    <RadioGroup value={paymentMethod} onValueChange={(value: "paystack" | "stripe") => setPaymentMethod(value)}>
+                      <div className="space-y-3">
+                        {(appSettings?.payments.paystackEnabled ?? true) && (
+                          <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
+                            <RadioGroupItem value="paystack" id="paystack" />
+                            <div className="flex-1">
+                              <Label htmlFor="paystack" className="cursor-pointer font-medium">
+                                Paystack
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Pay with card, bank transfer, or mobile money
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {(appSettings?.payments.stripeEnabled ?? false) && (
+                          <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
+                            <RadioGroupItem value="stripe" id="stripe" />
+                            <div className="flex-1">
+                              <Label htmlFor="stripe" className="cursor-pointer font-medium">
+                                Stripe
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Pay securely with Stripe
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
+
+                <Button
                   type="button" 
                   onClick={handlePayment} 
                   className="w-full h-11 text-base font-medium bg-green-600 hover:bg-green-700" 

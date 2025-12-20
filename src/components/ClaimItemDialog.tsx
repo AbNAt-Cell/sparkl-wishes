@@ -134,6 +134,7 @@ export const ClaimItemDialog = ({
   const [claimId, setClaimId] = useState<string | null>(null);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "stripe">("paystack");
   const { data: appSettings } = useAppSettings();
 
   // Query to get remaining amount for group gifts
@@ -180,8 +181,9 @@ export const ClaimItemDialog = ({
 
   const paymentDisplayAmount = getPaymentDisplayAmount();
 
-  // Get Paystack key from environment
+  // Get payment keys from environment
   const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+  const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
 
   // Check if user is trying to claim their own item
   const isOwnItem = currentUserId && wishlistOwnerId && currentUserId === wishlistOwnerId;
@@ -366,6 +368,68 @@ export const ClaimItemDialog = ({
       handler.openIframe();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to initialize payment";
+      toast.error(errorMessage);
+      setIsLoadingPayment(false);
+    }
+  };
+
+  const handleStripePayment = async (claimId: string) => {
+    // Fetch the claim to get the exact contribution amount
+    const { data: claimData, error: fetchError } = await supabase
+      .from("claims")
+      .select("contribution_amount")
+      .eq("id", claimId)
+      .single();
+
+    const contribAmount = (claimData as { contribution_amount?: number } | null)?.contribution_amount;
+    if (fetchError || !claimData || !contribAmount) {
+      toast.error("Failed to fetch payment amount");
+      setIsLoadingPayment(false);
+      return;
+    }
+
+    const finalAmount = contribAmount;
+
+    if (!STRIPE_PUBLIC_KEY) {
+      toast.error("Stripe configuration missing");
+      setIsLoadingPayment(false);
+      return;
+    }
+
+    try {
+      // Call backend to create Stripe payment intent
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-stripe-intent", {
+        body: {
+          claimId,
+          amount: Math.round(finalAmount * 100), // Convert to cents
+          currency: currency.toLowerCase(),
+          email: formData.email,
+          itemName,
+        },
+      });
+
+      if (paymentError || !paymentData?.clientSecret) {
+        throw new Error(paymentError?.message || "Failed to create payment intent");
+      }
+
+      // Dynamically load Stripe.js
+      const stripe = (await import("@stripe/js")).loadStripe(STRIPE_PUBLIC_KEY);
+      if (!stripe) {
+        throw new Error("Failed to load Stripe");
+      }
+
+      const elements = (await stripe).elements({
+        clientSecret: paymentData.clientSecret,
+      });
+
+      const paymentElement = elements.create("payment");
+      
+      // Create a simple modal for payment (simplified approach)
+      // In production, you'd want a dedicated payment form component
+      toast.info("Stripe payment not fully configured yet. Please use Paystack for now.");
+      setIsLoadingPayment(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to initialize Stripe payment";
       toast.error(errorMessage);
       setIsLoadingPayment(false);
     }
@@ -673,11 +737,15 @@ export const ClaimItemDialog = ({
   const handlePayment = async () => {
     if (!claimId) return;
     
-    // Close the dialog BEFORE opening Paystack popup to avoid z-index issues
+    // Close the dialog BEFORE opening payment popup to avoid z-index issues
     onOpenChange(false);
     
     setIsLoadingPayment(true);
-    handlePaystackPayment(claimId);
+    if (paymentMethod === "stripe") {
+      handleStripePayment(claimId);
+    } else {
+      handlePaystackPayment(claimId);
+    }
   };
 
   const handleAnonymousToggle = async (checked: boolean) => {
@@ -982,9 +1050,51 @@ export const ClaimItemDialog = ({
               </div>
             </div>
           </div>
-          
-          {/* Payment Information */}
-          {itemPrice && itemPrice > 0 && !showPaymentButton && (
+
+           {/* Payment Method Selection */}
+           {itemPrice && itemPrice > 0 && !showPaymentButton && ((appSettings?.payments.paystackEnabled ?? true) || (appSettings?.payments.stripeEnabled ?? false)) && (
+             <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-blue-50/30 to-cyan-50/30">
+               <div className="flex items-center gap-2 pb-2 border-b">
+                 <CreditCard className="w-4 h-4 text-muted-foreground" />
+                 <h3 className="font-medium text-sm">Choose Payment Method</h3>
+               </div>
+               
+               <RadioGroup value={paymentMethod} onValueChange={(value: "paystack" | "stripe") => setPaymentMethod(value)}>
+                 <div className="space-y-3">
+                   {(appSettings?.payments.paystackEnabled ?? true) && (
+                     <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
+                       <RadioGroupItem value="paystack" id="paystack" />
+                       <div className="flex-1">
+                         <Label htmlFor="paystack" className="cursor-pointer font-medium">
+                           Paystack
+                         </Label>
+                         <p className="text-xs text-muted-foreground mt-1">
+                           Pay with card, bank transfer, or mobile money
+                         </p>
+                       </div>
+                     </div>
+                   )}
+                   
+                   {(appSettings?.payments.stripeEnabled ?? false) && (
+                     <div className="flex items-start space-x-3 p-3 rounded-lg border bg-white hover:bg-muted/20 cursor-pointer">
+                       <RadioGroupItem value="stripe" id="stripe" />
+                       <div className="flex-1">
+                         <Label htmlFor="stripe" className="cursor-pointer font-medium">
+                           Stripe
+                         </Label>
+                         <p className="text-xs text-muted-foreground mt-1">
+                           Pay securely with Stripe
+                         </p>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               </RadioGroup>
+             </div>
+           )}
+           
+           {/* Payment Information */}
+           {itemPrice && itemPrice > 0 && !showPaymentButton && (
             <Alert className="bg-primary/5 border-primary/20">
               <Shield className="h-4 w-4 text-primary" />
               <AlertDescription className="space-y-2">
@@ -1029,7 +1139,7 @@ export const ClaimItemDialog = ({
                 <Button 
                   type="submit" 
                   className="w-full h-11 text-base font-medium" 
-                  disabled={isSubmitting || (itemPrice && itemPrice > 0 && !(appSettings?.payments.paystackEnabled ?? true))}
+                  disabled={isSubmitting || (itemPrice && itemPrice > 0 && !((appSettings?.payments.paystackEnabled ?? true) || (appSettings?.payments.stripeEnabled ?? false)))}
                 >
                   {isSubmitting ? (
                     <>

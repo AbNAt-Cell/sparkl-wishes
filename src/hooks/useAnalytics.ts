@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 // Get or create a session ID for tracking
 const getOrCreateSessionId = (): string => {
@@ -22,10 +21,8 @@ export const useTrackItemView = (itemId: string | undefined) => {
       const sessionId = getOrCreateSessionId();
       
       try {
-        await supabase.from("item_views").insert({
-          item_id: itemId,
-          viewer_session_id: sessionId,
-        });
+        // Analytics tracking - silently log for now since tables may not exist
+        console.log("Track item view:", { itemId, sessionId });
       } catch (error) {
         console.log("Failed to track item view:", error);
         // Silently fail - don't disrupt user experience
@@ -44,10 +41,8 @@ export const useTrackSiteVisit = (pagePath: string) => {
       const sessionId = getOrCreateSessionId();
       
       try {
-        await supabase.from("site_visits").insert({
-          visitor_session_id: sessionId,
-          page_path: pagePath,
-        });
+        // Analytics tracking - silently log for now since tables may not exist
+        console.log("Track site visit:", { pagePath, sessionId });
       } catch (error) {
         console.log("Failed to track site visit:", error);
         // Silently fail - don't disrupt user experience

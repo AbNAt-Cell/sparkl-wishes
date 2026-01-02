@@ -244,7 +244,7 @@ export const ClaimItemDialog = ({
             .from('claims')
             .select('id')
             .eq('item_id', itemId)
-            .eq('claimer_identifier', identifier)
+            .eq('claimer_email', identifier)
             .in('payment_status', ['pending', 'completed'])
             .limit(1);
           if (!error && existing && existing.length > 0) {
@@ -413,7 +413,8 @@ export const ClaimItemDialog = ({
       }
 
       // Dynamically load Stripe.js
-      const stripe = (await import("@stripe/js")).loadStripe(STRIPE_PUBLIC_KEY);
+      const { loadStripe } = await import("@stripe/stripe-js");
+      const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
       if (!stripe) {
         throw new Error("Failed to load Stripe");
       }
@@ -596,10 +597,10 @@ export const ClaimItemDialog = ({
       let claimData;
       
       try {
+        // Use RPC function - note: it returns a UUID directly, not a complex object
         const { data: rpcResponse, error: rpcError } = await supabase
           .rpc('create_wishlist_claim', {
             p_item_id: itemId,
-            p_user_id: claimUserId,
             p_claimer_name: formData.name,
             p_claimer_email: formData.email,
             p_claimer_phone: formData.phone || null,
@@ -640,44 +641,46 @@ export const ClaimItemDialog = ({
           
           claimData = directData;
           console.log("✅ Claim created via direct insert:", claimData.id);
+        } else if (rpcResponse) {
+          // RPC returns UUID string directly - fetch full claim data
+          const { data: fullClaim } = await supabase
+            .from('claims')
+            .select('*')
+            .eq('id', rpcResponse as string)
+            .single();
+          claimData = fullClaim;
+          console.log("✅ Claim created via RPC:", rpcResponse);
         } else {
-          const rpcResult = rpcResponse as { success: boolean; claim?: any; error?: string } | null;
+          console.warn("⚠️ RPC returned empty response, trying direct insert");
           
-          if (!rpcResult?.success || !rpcResult?.claim) {
-            console.warn("⚠️ RPC returned unsuccessful response, trying direct insert:", rpcResult);
-            
-            // Fallback to direct insert
-            const { data: directData, error: directError } = await supabase
-              .from("claims")
-              .insert({
-                item_id: itemId,
-                user_id: claimUserId,
-                claimer_name: formData.name,
-                claimer_email: formData.email,
-                claimer_phone: formData.phone || null,
-                notes: formData.notes || null,
-                is_anonymous: formData.isAnonymous,
-                payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
-                expires_at: itemPrice && itemPrice > 0 
-                  ? new Date(Date.now() + 20 * 60 * 1000).toISOString() 
-                  : null,
-                is_group_gift: allowGroupGifting,
-                contribution_amount: paymentAmount,
-              })
-              .select()
-              .single();
+          // Fallback to direct insert
+          const { data: directData, error: directError } = await supabase
+            .from("claims")
+            .insert({
+              item_id: itemId,
+              user_id: claimUserId,
+              claimer_name: formData.name,
+              claimer_email: formData.email,
+              claimer_phone: formData.phone || null,
+              notes: formData.notes || null,
+              is_anonymous: formData.isAnonymous,
+              payment_status: itemPrice && itemPrice > 0 ? "pending" : "not_required",
+              expires_at: itemPrice && itemPrice > 0 
+                ? new Date(Date.now() + 20 * 60 * 1000).toISOString() 
+                : null,
+              is_group_gift: allowGroupGifting,
+              contribution_amount: paymentAmount,
+            })
+            .select()
+            .single();
 
-            if (directError) {
-              console.error("❌ Both RPC and direct insert failed:", directError);
-              throw directError;
-            }
-            
-            claimData = directData;
-            console.log("✅ Claim created via direct insert:", claimData.id);
-          } else {
-            claimData = rpcResult.claim;
-            console.log("✅ Claim created successfully via RPC:", claimData.id);
+          if (directError) {
+            console.error("❌ Both RPC and direct insert failed:", directError);
+            throw directError;
           }
+          
+          claimData = directData;
+          console.log("✅ Claim created via direct insert:", claimData.id);
         }
       } catch (rpcFallbackError) {
         console.error("❌ Failed to create claim (RPC with fallback):", rpcFallbackError);
@@ -792,7 +795,7 @@ export const ClaimItemDialog = ({
             .from('claims')
             .select('id')
             .eq('item_id', itemId)
-            .eq('claimer_identifier', guestIdentifier)
+            .eq('claimer_email', guestIdentifier)
             .in('payment_status', ['pending', 'completed'])
             .limit(1);
           if (!dupErr && dup && dup.length > 0) {

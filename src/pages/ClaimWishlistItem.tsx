@@ -440,9 +440,9 @@ const ClaimWishlistItem = () => {
       let claimData, claimError;
 
       try {
+        // Use RPC function - note: it returns a UUID directly, not a complex object
         const rpcResult = await supabase.rpc('create_wishlist_claim', {
           p_item_id: itemId!,
-          p_user_id: claimUserId,
           p_claimer_name: formData.name,
           p_claimer_email: formData.email,
           p_claimer_phone: formData.phone || null,
@@ -450,14 +450,19 @@ const ClaimWishlistItem = () => {
           p_is_anonymous: formData.isAnonymous,
           p_is_group_gift: allowGroupGifting,
           p_contribution_amount: paymentAmount || null,
-          p_claim_type: deliveryType || 'cash_equivalent',
         });
 
-        if (rpcResult.data?.success) {
-          claimData = rpcResult.data.claim;
+        if (rpcResult.data) {
+          // RPC returns UUID string directly - fetch full claim data
+          const { data: fullClaim } = await supabase
+            .from('claims')
+            .select('*')
+            .eq('id', rpcResult.data)
+            .single();
+          claimData = fullClaim;
           claimError = null;
         } else {
-          throw new Error(rpcResult.data?.error || 'RPC failed');
+          throw new Error(rpcResult.error?.message || 'RPC failed');
         }
       } catch (rpcErr) {
         console.log("RPC failed, trying direct insert:", rpcErr);
@@ -598,7 +603,7 @@ const ClaimWishlistItem = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
         <main className="container mx-auto px-4 py-6 max-w-2xl">
-          <Button variant="ghost" onClick={() => navigate(shareCode ? `/share/${shareCode}` : -1)} className="mb-6">
+          <Button variant="ghost" onClick={() => navigate(shareCode ? `/share/${shareCode}` : "/dashboard")} className="mb-6">
             <ArrowLeft className="w-5 h-5 mr-2" /> Back
           </Button>
 

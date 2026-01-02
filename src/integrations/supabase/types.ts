@@ -131,6 +131,7 @@ export type Database = {
       }
       claims: {
         Row: {
+          claim_type: string | null
           claimer_email: string | null
           claimer_name: string | null
           claimer_phone: string | null
@@ -151,6 +152,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          claim_type?: string | null
           claimer_email?: string | null
           claimer_name?: string | null
           claimer_phone?: string | null
@@ -171,6 +173,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          claim_type?: string | null
           claimer_email?: string | null
           claimer_name?: string | null
           claimer_phone?: string | null
@@ -388,7 +391,7 @@ export type Database = {
           external_link: string | null
           id: string
           image_url: string | null
-          item_type: string
+          item_type: string | null
           name: string
           price_max: number | null
           price_min: number | null
@@ -404,7 +407,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           image_url?: string | null
-          item_type?: string
+          item_type?: string | null
           name: string
           price_max?: number | null
           price_min?: number | null
@@ -420,7 +423,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           image_url?: string | null
-          item_type?: string
+          item_type?: string | null
           name?: string
           price_max?: number | null
           price_min?: number | null
@@ -566,6 +569,20 @@ export type Database = {
       }
     }
     Functions: {
+      create_wishlist_claim: {
+        Args: {
+          p_claimer_email: string
+          p_claimer_name: string
+          p_claimer_phone: string
+          p_contribution_amount?: number
+          p_expires_at?: string
+          p_is_anonymous?: boolean
+          p_is_group_gift?: boolean
+          p_item_id: string
+          p_notes?: string
+        }
+        Returns: string
+      }
       expire_unpaid_claims: { Args: never; Returns: undefined }
     }
     Enums: {

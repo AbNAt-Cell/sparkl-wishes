@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Calendar, Share2, Plus, ExternalLink, Loader2, Gift, Edit, Trash2, Upload, X } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ArrowLeft, Share2, Plus, ExternalLink, Gift, Edit, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrencySymbol, isItemClaimed } from "@/lib/utils";
 import { useTrackSiteVisit } from "@/hooks/useAnalytics";
@@ -53,33 +52,36 @@ const WishlistDetail = () => {
   const { data: items = [], isLoading: itemsLoading, refetch: refetchItems } = useQuery({
     queryKey: ["wishlist-items", id],
     queryFn: async () => {
-      // Fetch items and claims in parallel for better performance
-      const [itemsResult, claimsResult] = await Promise.all([
-        supabase
+      // Fetch items
+      const { data: itemsData, error: itemsError } = await supabase
         .from("wishlist_items")
-          .select("id, name, description, price_min, price_max, external_link, image_url, allow_group_gifting, created_at")
+        .select("id, name, description, price_min, price_max, external_link, image_url, allow_group_gifting, created_at")
         .eq("wishlist_id", id!)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("claims")
-          .select("id, wishlist_item_id, payment_status, contribution_amount, is_group_gift")
-          .eq("wishlist_items.wishlist_id", id!)
-      ]);
+        .order("created_at", { ascending: false });
 
-      if (itemsResult.error) {
-        console.error("Error fetching items:", itemsResult.error);
+      if (itemsError) {
+        console.error("Error fetching items:", itemsError);
         return [];
       }
 
-      if (claimsResult.error) {
-        console.error("Error fetching claims:", claimsResult.error);
-        return itemsResult.data || [];
+      // Fetch claims for these items
+      const itemIds = (itemsData || []).map(item => item.id);
+      if (itemIds.length === 0) return itemsData || [];
+
+      const { data: claimsData, error: claimsError } = await supabase
+        .from("claims")
+        .select("id, item_id, payment_status, contribution_amount, is_group_gift")
+        .in("item_id", itemIds);
+
+      if (claimsError) {
+        console.error("Error fetching claims:", claimsError);
+        return itemsData || [];
       }
 
-      // Merge claims into items for easier consumption
-      const itemsWithClaims = (itemsResult.data || []).map(item => ({
+      // Merge claims into items
+      const itemsWithClaims = (itemsData || []).map(item => ({
         ...item,
-        claims: claimsResult.data?.filter(claim => claim.wishlist_item_id === item.id) || []
+        claims: (claimsData || []).filter(claim => claim.item_id === item.id)
       }));
 
       return itemsWithClaims;
@@ -88,8 +90,6 @@ const WishlistDetail = () => {
   });
 
   const isOwner = session?.user?.id === wishlist?.user_id;
-
-
 
   const handleEditClick = (item: any) => {
     navigate(`/wishlist/${id}/item/${item.id}/edit`);
@@ -112,11 +112,8 @@ const WishlistDetail = () => {
     }
   };
 
-
-
   // Show error state if query failed
   if (error) {
-    console.log("WishlistDetail: Showing error state", error);
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-primary/5">
         <Navbar user={session?.user} />
@@ -205,8 +202,8 @@ const WishlistDetail = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map((item) => {
-                const claimed = isItemClaimed(item.claims, item);
+              {items.map((item: any) => {
+                const claimed = isItemClaimed(item.claims || [], item);
                 return (
                   <Card key={item.id} className="shadow-lg hover:shadow-xl transition-shadow">
                     {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-48 object-cover rounded-t-xl" loading="lazy" />}
@@ -246,8 +243,7 @@ const WishlistDetail = () => {
           )}
         </section>
 
-
-        {/* DELETE MODAL - FULLY WORKING */}
+        {/* DELETE MODAL */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent className="max-w-sm w-[90vw] mx-auto p-8 rounded-3xl">
             <AlertDialogHeader>

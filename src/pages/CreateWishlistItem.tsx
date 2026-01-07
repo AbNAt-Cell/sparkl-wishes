@@ -13,11 +13,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { getCurrencySymbol } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const CreateWishlistItem = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -104,6 +105,9 @@ const CreateWishlistItem = () => {
       });
       
       if (error) throw error;
+      
+      // Invalidate cache so the list updates immediately
+      await queryClient.invalidateQueries({ queryKey: ["wishlist-items", id] });
       
       toast.success("Item added!");
       navigate(`/wishlist/${id}`);
